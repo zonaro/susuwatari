@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Susuwatari - Coelhinhos de Poeira</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            height: 100vh;
+            user-select: none;
+            /* Prevenir seleção de texto */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        .susuwatari {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background:
+                radial-gradient(ellipse at 20% 30%, rgba(80, 80, 80, 0.3) 0%, transparent 40%),
+                radial-gradient(ellipse at 80% 25%, rgba(60, 60, 60, 0.4) 0%, transparent 35%),
+                radial-gradient(ellipse at 40% 80%, rgba(40, 40, 40, 0.5) 0%, transparent 45%),
+                radial-gradient(ellipse at 70% 70%, rgba(50, 50, 50, 0.3) 0%, transparent 30%),
+                radial-gradient(circle, #2a2a2a 30%, #000 70%);
+            border-radius: 50%;
+            transition: all 0.3s ease-out;
+            box-shadow:
+                0 0 8px rgba(0, 0, 0, 0.8),
+                inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+                inset 1px 1px 2px rgba(80, 80, 80, 0.2);
+            --eye-size: 3px;
+            --eye-position: 3px;
+            --pupil-size: 1px;
+            filter: blur(0.3px);
+        }
+
+        .susuwatari::before,
+        .susuwatari::after {
+            content: '';
+            position: absolute;
+            top: var(--eye-position);
+            width: var(--eye-size);
+            height: var(--eye-size);
+            background: radial-gradient(circle, #fff 60%, #f0f0f0 100%);
+            border-radius: 50%;
+            opacity: 0.95;
+            box-shadow:
+                0 0 2px rgba(255, 255, 255, 0.5),
+                inset 0 1px 1px rgba(255, 255, 255, 0.8),
+                inset 0 -1px 1px rgba(0, 0, 0, 0.2);
+        }
+
+        .susuwatari::before {
+            left: var(--eye-position);
+        }
+
+        .susuwatari::after {
+            right: var(--eye-position);
+        }
+
+        /* Pupilas */
+        .left-pupil,
+        .right-pupil {
+            position: absolute;
+            width: var(--pupil-size);
+            height: var(--pupil-size);
+            background: radial-gradient(circle, #000 50%, #333 100%);
+            border-radius: 50%;
+            transition: all 0.1s ease-out;
+            z-index: 2;
+            box-shadow: 0 0 1px rgba(0, 0, 0, 0.8);
+        }
+
+        .fleeing {
+            transform: scale(0.8);
+            opacity: 0.7;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="susuwatari.js"></script>
+</body>
+
+</html>

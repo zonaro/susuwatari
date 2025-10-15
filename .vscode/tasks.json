@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Abrir Susuwatari no Navegador",
+			"type": "shell",
+			"command": "Start-Process",
+			"args": [
+				"index.html"
+			],
+			"isBackground": false,
+			"group": "build"
+		}
+	]
+}
