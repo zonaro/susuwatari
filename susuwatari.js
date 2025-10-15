@@ -11,8 +11,14 @@ class SusuwatariCanvas {
         this.fleeDistance = 80;
         this.maxParticles = 100;
         this.particleSize = 18;
-        this.minSize = 8;
-        this.maxSize = 40;
+        this.minSize = 10;
+        this.maxSize = 120;
+
+        // Sistema de partículas de fumaça para explosões
+        this.smokeParticles = [];
+
+        // Sistema de rastro de fuligem
+        this.trailParticles = [];
 
         // Performance tracking
         this.lastFrameTime = Date.now();
@@ -80,13 +86,35 @@ class SusuwatariCanvas {
 
         // Left click - add particle
         this.canvas.addEventListener('click', (e) => {
-            this.createParticle(e.clientX, e.clientY);
+            //verificar se existe um susuwatari no local clicado (considerando forma espinhosa)
+            const clickedIndex = this.particles.findIndex(particle => {
+                const dx = e.clientX - particle.x;
+                const dy = e.clientY - particle.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                // Usar um raio um pouco maior para compensar a forma espinhosa
+                return distance < (particle.size / 2) * 1.2;
+            });
+
+            // Se um Susuwatari foi clicado, remover ele. Se não houver susuwatari, criar um novo
+            if (clickedIndex !== -1) {
+                const removedParticle = this.particles[clickedIndex];
+                this.createSmokeExplosion(removedParticle.x, removedParticle.y, removedParticle.size);
+                this.particles.splice(clickedIndex, 1);
+                this.updateUI();
+            } else {
+                this.createParticle(e.clientX, e.clientY);
+            }
         });
 
-        // Right click - remove particle
-        this.canvas.addEventListener('contextmenu', (e) => {
+        // Toggle UI info com clique direito na tela
+        document.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            this.removeNearestParticle(e.clientX, e.clientY);
+            const uiInfo = document.querySelector('.ui-info');
+            if (uiInfo.style.display === 'none') {
+                uiInfo.style.display = 'block';
+            } else {
+                uiInfo.style.display = 'none';
+            }
         });
 
         // Window resize
@@ -162,6 +190,134 @@ class SusuwatariCanvas {
         return (3 + Math.random() * 7) * 1000;
     }
 
+    createSmokeExplosion(x, y, size) {
+        const particleCount = 8 + Math.floor(Math.random() * 6); // 8-14 partículas de fumaça
+
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
+            const speed = 1 + Math.random() * 2; // Velocidade de dispersão
+            const smokeSize = size * (0.3 + Math.random() * 0.4); // 30-70% do tamanho original
+
+            const smokeParticle = {
+                x: x,
+                y: y,
+                velocityX: Math.cos(angle) * speed,
+                velocityY: Math.sin(angle) * speed,
+                size: smokeSize,
+                opacity: 0.8,
+                life: 1.0,
+                decay: 0.02 + Math.random() * 0.01 // Velocidade de desaparecimento
+            };
+
+            this.smokeParticles.push(smokeParticle);
+        }
+    }
+
+    updateSmokeParticles() {
+        this.smokeParticles = this.smokeParticles.filter(smoke => {
+            // Atualizar posição
+            smoke.x += smoke.velocityX;
+            smoke.y += smoke.velocityY;
+
+            // Aplicar atrito
+            smoke.velocityX *= 0.95;
+            smoke.velocityY *= 0.95;
+
+            // Reduzir vida e opacidade
+            smoke.life -= smoke.decay;
+            smoke.opacity = smoke.life * 0.8;
+
+            // Aumentar tamanho ligeiramente
+            smoke.size += 0.2;
+
+            // Remover se a vida acabou
+            return smoke.life > 0;
+        });
+    }
+
+    drawSmokeParticles() {
+        this.smokeParticles.forEach(smoke => {
+            this.ctx.save();
+            this.ctx.globalAlpha = smoke.opacity;
+
+            // Gradiente de fumaça
+            const gradient = this.ctx.createRadialGradient(
+                smoke.x, smoke.y, 0,
+                smoke.x, smoke.y, smoke.size / 2
+            );
+            gradient.addColorStop(0, '#666666');
+            gradient.addColorStop(0.5, '#444444');
+            gradient.addColorStop(1, 'rgba(68, 68, 68, 0)');
+
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.arc(smoke.x, smoke.y, smoke.size / 2, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            this.ctx.restore();
+        });
+    }
+
+    createTrailParticle(x, y, size, intensity = 1.0) {
+        // Só criar rastro se houver movimento significativo
+        if (Math.random() < 0.3 * intensity) { // 30% chance base, aumenta com intensidade
+            const trailParticle = {
+                x: x + (Math.random() - 0.5) * size * 0.3, // Pequena variação de posição
+                y: y + (Math.random() - 0.5) * size * 0.3,
+                size: size * (0.1 + Math.random() * 0.15), // 10-25% do tamanho original
+                opacity: 0.4 * intensity,
+                life: 1.0,
+                decay: 0.008 + Math.random() * 0.007, // Desaparece mais lentamente que fumaça
+                velocityX: (Math.random() - 0.5) * 0.2, // Movimento muito sutil
+                velocityY: (Math.random() - 0.5) * 0.2
+            };
+
+            this.trailParticles.push(trailParticle);
+        }
+    }
+
+    updateTrailParticles() {
+        this.trailParticles = this.trailParticles.filter(trail => {
+            // Atualizar posição levemente
+            trail.x += trail.velocityX;
+            trail.y += trail.velocityY;
+
+            // Aplicar atrito
+            trail.velocityX *= 0.98;
+            trail.velocityY *= 0.98;
+
+            // Reduzir vida e opacidade
+            trail.life -= trail.decay;
+            trail.opacity = trail.life * 0.4;
+
+            // Remover se a vida acabou
+            return trail.life > 0;
+        });
+    }
+
+    drawTrailParticles() {
+        this.trailParticles.forEach(trail => {
+            this.ctx.save();
+            this.ctx.globalAlpha = trail.opacity;
+
+            // Cor de fuligem mais escura
+            const gradient = this.ctx.createRadialGradient(
+                trail.x, trail.y, 0,
+                trail.x, trail.y, trail.size / 2
+            );
+            gradient.addColorStop(0, '#2a2a2a');
+            gradient.addColorStop(0.6, '#1a1a1a');
+            gradient.addColorStop(1, 'rgba(26, 26, 26, 0)');
+
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.arc(trail.x, trail.y, trail.size / 2, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            this.ctx.restore();
+        });
+    }
+
     checkParticleCollisions() {
         this.particles.forEach(particle => {
             const distance = Math.sqrt(
@@ -183,7 +339,7 @@ class SusuwatariCanvas {
             particle.fleeStartTime = Date.now();
 
             const angle = Math.atan2(particle.y - this.mouseY, particle.x - this.mouseX);
-            const fleeDistance = 50 + Math.random() * 25; // Distância ligeiramente maior para movimento mais natural
+            const fleeDistance = 80 + Math.random() * 60; // Distância muito maior: 80-140 pixels
 
             const newX = particle.x + Math.cos(angle) * fleeDistance;
             const newY = particle.y + Math.sin(angle) * fleeDistance;
@@ -209,9 +365,9 @@ class SusuwatariCanvas {
                 // Calculate velocity towards target com aceleração/desaceleração
                 const baseSpeed = particle.isFleeing ? particle.fleeSpeed : particle.fleeSpeed * 0.15;
 
-                // Aceleração: movimento mais rápido quando está longe do destino
+                // Aceleração: movimento muito mais rápido quando está longe do destino
                 const accelerationFactor = particle.isFleeing ?
-                    Math.min(2.5, 1 + distance * 0.02) : // Acelera mais quando fugindo
+                    Math.min(4.0, 1 + distance * 0.04) : // Acelera muito mais quando fugindo (4x max)
                     Math.min(1.8, 1 + distance * 0.01);  // Acelera menos quando voltando
 
                 // Desaceleração mais suave: só começa a desacelerar muito perto do destino
@@ -223,6 +379,15 @@ class SusuwatariCanvas {
 
                 particle.velocityX = deltaX * finalSpeed;
                 particle.velocityY = deltaY * finalSpeed;
+
+                // Calcular intensidade do movimento para o rastro
+                const movementSpeed = Math.sqrt(particle.velocityX * particle.velocityX + particle.velocityY * particle.velocityY);
+                const trailIntensity = Math.min(1.0, movementSpeed * 8); // Intensidade baseada na velocidade
+
+                // Criar rastro de fuligem baseado na velocidade
+                if (trailIntensity > 0.1) { // Só criar rastro se houver movimento significativo
+                    this.createTrailParticle(particle.x, particle.y, particle.size, trailIntensity);
+                }
 
                 // Apply velocity to position
                 particle.x += particle.velocityX;
@@ -346,12 +511,12 @@ class SusuwatariCanvas {
                 this.ctx.lineTo(pointX, pointY);
             }
         }
-        this.ctx.closePath();        // Fill with gradient
+        this.ctx.closePath();        // Fill with gradient (muito mais escuro)
         const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, radius);
-        gradient.addColorStop(0, '#3a3a3a');
-        gradient.addColorStop(0.3, '#2a2a2a');
-        gradient.addColorStop(0.7, '#1a1a1a');
-        gradient.addColorStop(1, '#000000');
+        gradient.addColorStop(0, '#1a1a1a'); // Centro mais escuro
+        gradient.addColorStop(0.3, '#111111'); // Meio escuro
+        gradient.addColorStop(0.7, '#080808'); // Quase preto
+        gradient.addColorStop(1, '#000000'); // Preto total
 
         this.ctx.fillStyle = gradient;
         this.ctx.fill();
@@ -364,15 +529,16 @@ class SusuwatariCanvas {
         this.ctx.fill();
         this.ctx.shadowBlur = 0;
 
-        // Add fuzzy texture with multiple small circles
-        this.ctx.globalAlpha = 0.3;
+        // Add fuzzy texture with multiple small circles (mais escuro)
+        this.ctx.globalAlpha = 0.4;
         for (let i = 0; i < 8; i++) {
             const angle = (i / 8) * Math.PI * 2;
             const radius = size * (0.1 + Math.random() * 0.2);
             const fuzzX = x + Math.cos(angle) * radius;
             const fuzzY = y + Math.sin(angle) * radius;
 
-            this.ctx.fillStyle = `rgba(${60 + Math.random() * 20}, ${60 + Math.random() * 20}, ${60 + Math.random() * 20}, ${0.2 + Math.random() * 0.2})`;
+            // Textura muito mais escura (tons de preto/cinza escuro)
+            this.ctx.fillStyle = `rgba(${10 + Math.random() * 15}, ${10 + Math.random() * 15}, ${10 + Math.random() * 15}, ${0.3 + Math.random() * 0.3})`;
             this.ctx.beginPath();
             this.ctx.arc(fuzzX, fuzzY, size * 0.08, 0, Math.PI * 2);
             this.ctx.fill();
@@ -382,7 +548,9 @@ class SusuwatariCanvas {
 
         // Draw eyes
         if (particle.eyeOpacity > 0) {
-            const eyeSize = size * 0.17;
+            // Olhos maiores e pupilas dilatadas quando fugindo (efeito de susto)
+            const baseEyeSize = size * 0.17;
+            const eyeSize = particle.isFleeing ? baseEyeSize * 1.4 : baseEyeSize; // 40% maiores quando fugindo
             const eyePosition = size * 0.17;
 
             this.ctx.globalAlpha = particle.eyeOpacity;
@@ -418,7 +586,9 @@ class SusuwatariCanvas {
             pupilGradient.addColorStop(1, '#333333');
 
             this.ctx.fillStyle = pupilGradient;
-            const pupilSize = eyeSize * 0.4;
+            // Pupilas dilatadas quando fugindo (efeito de susto/medo)
+            const basePupilSize = eyeSize * 0.4;
+            const pupilSize = particle.isFleeing ? basePupilSize * 1.6 : basePupilSize; // 60% maiores quando fugindo
 
             // Left pupil
             this.ctx.beginPath();
@@ -461,10 +631,21 @@ class SusuwatariCanvas {
     }
 
     refillScreen() {
-        // Remove off-screen particles
+        // Remove off-screen particles com explosão de fumaça
+        const initialCount = this.particles.length;
         this.particles = this.particles.filter(particle => {
-            return particle.x > -50 && particle.x < this.canvas.width + 50 &&
+            const isOnScreen = particle.x > -50 && particle.x < this.canvas.width + 50 &&
                 particle.y > -50 && particle.y < this.canvas.height + 50;
+
+            // Se a partícula saiu da tela, criar explosão de fumaça
+            if (!isOnScreen) {
+                // Criar explosão na borda da tela mais próxima
+                const edgeX = Math.max(-50, Math.min(this.canvas.width + 50, particle.x));
+                const edgeY = Math.max(-50, Math.min(this.canvas.height + 50, particle.y));
+                this.createSmokeExplosion(edgeX, edgeY, particle.size);
+            }
+
+            return isOnScreen;
         });
 
         // Add new particles
@@ -506,6 +687,14 @@ class SusuwatariCanvas {
 
         // Update particle movement (smooth animation)
         this.updateParticleMovement();
+
+        // Update and draw trail particles (rastro de fuligem)
+        this.updateTrailParticles();
+        this.drawTrailParticles();
+
+        // Update and draw smoke particles
+        this.updateSmokeParticles();
+        this.drawSmokeParticles();
 
         // Update pupils and process blinks
         this.updatePupils();
