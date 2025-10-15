@@ -1,10 +1,50 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Susuwatari Canvas - Coelhinhos de Poeira</title>
+    <title>Susuwatari Wallpaper - Soot Sprites</title>
+
+    <!-- Wallpaper Engine Properties -->
+    <script type="application/json" id="wallpaper-properties">
+    {
+        "susuwatari_size": {
+            "order": 100,
+            "text": "Initial Susuwatari Size",
+            "type": "slider",
+            "value": 18,
+            "min": 10,
+            "max": 150
+        },
+        "susuwatari_count": {
+            "order": 200,
+            "text": "Initial Susuwatari Count",
+            "type": "slider",
+            "value": 100,
+            "min": 1,
+            "max": 150
+        },
+        "flee_distance": {
+            "order": 300,
+            "text": "Mouse Detection Distance",
+            "type": "slider",
+            "value": 80,
+            "min": 10,
+            "max": 100
+        },
+        "flee_acceleration": {
+            "order": 400,
+            "text": "Flee Acceleration",
+            "type": "slider",
+            "value": 4.0,
+            "min": 1.0,
+            "max": 8.0,
+            "step": 0.1
+        }
+    }
+    </script>
+
     <style>
         body {
             margin: 0;
@@ -34,7 +74,7 @@
             z-index: 1000;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
             display: none;
-            /* Inicia escondida */
+            /* Starts hidden */
         }
     </style>
 </head>
@@ -42,7 +82,7 @@
 <body>
     <canvas id="susuwatari-canvas"></canvas>
     <div class="ui-info">
-        🎮 Scroll: Tamanho | Clique: Adicionar/Remover | Direito: Toggle UI<br>
+        🎮 Scroll: Size | Click: Add/Remove | Right: Toggle UI<br>
         💫 Susuwatari: <span id="count">0</span> | FPS: <span id="fps">0</span>
     </div>
     <script src="susuwatari.js"></script>

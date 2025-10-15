@@ -1,50 +1,93 @@
-# Susuwatari - Coelhinhos de Poeira
+# Susuwatari - Interactive Wallpaper Engine Wallpaper
 
-Uma implementação interativa dos famosos Susuwatari (coelhinhos de poeira) dos filmes do Studio Ghibli, especialmente "A Viagem de Chihiro" e "Meu Vizinho Totoro".
+An interactive implementation of the famous Susuwatari (soot sprites) from Studio Ghibli films, especially "Spirited Away" and "My Neighbor Totoro", optimized for Wallpaper Engine.
 
-## Funcionalidades
+## Features
 
-- **Animação Fluida**: Os Susuwatari se movem suavemente pela tela com um movimento sutil de "respiração"
-- **Interação com Mouse**: Quando o mouse se aproxima, os coelhinhos fogem em direções aleatórias
-- **Regeneração Automática**: Após 2 segundos sem movimento do mouse, novos Susuwatari aparecem para preencher a tela
-- **Cursor Customizado**: Cursor personalizado que combina com a estética do projeto
-- **Design Responsivo**: Adapta-se a diferentes tamanhos de tela
+### Basic Interactions
+- **Fluid Animation**: Susuwatari move smoothly across the screen with subtle movement
+- **Mouse Interaction**: When the mouse approaches, the sprites flee with realistic physics
+- **Auto Regeneration**: After 2 seconds without mouse movement, new Susuwatari appear
+- **Scroll for Size**: Use mouse wheel to increase/decrease Susuwatari size
+- **Click to Add/Remove**: Click on empty area to add, on a Susuwatari to remove
 
-## Como Usar
+### Visual Effects
+- **Spiky Shape**: Each Susuwatari has a unique shape with 75-120 spikes
+- **Expressive Eyes**: Pupils that follow the mouse and dilate when scared
+- **Blinking System**: Randomly blink between 3-10 seconds
+- **Soot Trails**: Leave dark trails when moving
+- **Smoke Explosion**: When disappearing, explode into smoke particles
+- **Permanent Stains**: Leave soot stains for 10 seconds where they disappeared
 
-1. Abra o arquivo `index.html` em qualquer navegador web moderno
-2. Mova o mouse pela tela para ver os Susuwatari fugirem
-3. Mantenha o mouse parado por mais de 2 segundos para vê-los retornarem
+### Customizable Properties (Wallpaper Engine)
 
-## Estrutura do Projeto
+#### Initial Susuwatari Size
+- **Type**: Slider
+- **Range**: 10 - 150 pixels
+- **Default**: 18 pixels
+- **Description**: Sets the base size of Susuwatari when loading
+
+#### Initial Susuwatari Count
+- **Type**: Slider
+- **Range**: 1 - 150 particles
+- **Default**: 100 particles
+- **Description**: Number of Susuwatari on screen initially
+
+#### Mouse Detection Distance
+- **Type**: Slider
+- **Range**: 10 - 100 pixels
+- **Default**: 80 pixels
+- **Description**: Distance at which Susuwatari start fleeing from cursor
+
+#### Flee Acceleration
+- **Type**: Slider
+- **Range**: 1.0 - 8.0x
+- **Default**: 4.0x
+- **Description**: Maximum acceleration speed when fleeing
+
+## Wallpaper Engine Installation
+
+1. Copy all files to a folder
+2. Open Wallpaper Engine
+3. Go to "Browse" → "Create Wallpaper"
+4. Select "Web-based wallpaper"
+5. Choose the `index.html` file
+6. Configure properties as desired
+
+## Interaction Controls
 
 ```
-├── index.html          # Página principal com HTML e CSS
-├── susuwatari.js       # Lógica JavaScript dos coelhinhos de poeira
-└── README.md          # Este arquivo
+🎮 Scroll: Adjust Susuwatari size
+🖱️ Left Click: Add (empty area) / Remove (on Susuwatari)
+🖱️ Right Click: Show/hide UI information
 ```
 
-## Tecnologias Utilizadas
+## Project Structure
 
-- **HTML5**: Estrutura da página
-- **CSS3**: Estilização e animações
-- **JavaScript ES6+**: Lógica de interação e animação
+```
+├── index.html          # Main page with WE properties
+├── susuwatari.js       # JavaScript logic for the sprites
+├── project.json        # Wallpaper Engine configuration
+└── README.md          # This file
+```
 
-## Características Técnicas
+## Technologies Used
 
-- **Performance Otimizada**: Usa `requestAnimationFrame` para animações suaves
-- **Detecção de Colisão**: Sistema eficiente para detectar proximidade do mouse
-- **Gestão de Memória**: Remove partículas que saem da tela para evitar vazamentos
-- **Responsividade**: Recria partículas automaticamente quando a janela é redimensionada
+- **HTML5 Canvas**: High performance rendering
+- **JavaScript ES6+**: Physics and interaction logic
+- **Wallpaper Engine API**: Integration with customizable properties
 
-## Personalização
+## Performance
 
-Você pode ajustar vários parâmetros no arquivo `susuwatari.js`:
+- **60+ FPS**: Optimized for smooth rendering
+- **Canvas 2D**: Much more efficient than DOM manipulation
+- **Auto-cleanup**: Automatically removes off-screen particles
+- **Memory management**: Intelligent particle control
 
-- `fleeDistance`: Distância em que os Susuwatari começam a fugir (padrão: 80px)
-- `maxParticles`: Número máximo de partículas na tela (padrão: 50)
-- Timeout de mouse parado (padrão: 2000ms)
+## Inspiration
 
-## Inspiração
+This project was inspired by the adorable Susuwatari from Studio Ghibli films, magical creatures that live in abandoned houses and flee when disturbed, but return when everything is quiet again.
 
-Este projeto foi inspirado nos adoráveis Susuwatari dos filmes do Studio Ghibli, criaturas mágicas que vivem em casas abandonadas e fogem quando perturbadas, mas retornam quando tudo fica quieto novamente.
+## License
+
+Open source project for educational and entertainment purposes.

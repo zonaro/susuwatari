@@ -8,17 +8,25 @@ class SusuwatariCanvas {
         this.lastMouseMove = Date.now();
         this.isMouseStill = false;
         this.mouseStillTimeout = null;
+
+        // Wallpaper Engine customizable properties (default values)
         this.fleeDistance = 80;
         this.maxParticles = 100;
         this.particleSize = 18;
-        this.minSize = 10;
-        this.maxSize = 120;
+        this.fleeAcceleration = 4.0;
 
-        // Sistema de partículas de fumaça para explosões
+        // Limits for manual interaction
+        this.minSize = 10;
+        this.maxSize = 150;
+
+        // Smoke particle system for explosions
         this.smokeParticles = [];
 
-        // Sistema de rastro de fuligem
+        // Soot trail system
         this.trailParticles = [];
+
+        // Permanent soot stain system
+        this.sootStains = [];
 
         // Performance tracking
         this.lastFrameTime = Date.now();
@@ -26,6 +34,40 @@ class SusuwatariCanvas {
         this.fps = 0;
 
         this.init();
+    }
+
+    // Function to handle Wallpaper Engine properties
+    applyUserProperties(properties) {
+        if (properties.susuwatari_size) {
+            this.particleSize = properties.susuwatari_size.value;
+            // Update size of all existing Susuwatari
+            this.particles.forEach(particle => {
+                particle.baseSize = this.particleSize;
+                particle.size = this.particleSize * particle.sizeMultiplier;
+            });
+        }
+
+        if (properties.susuwatari_count) {
+            this.maxParticles = properties.susuwatari_count.value;
+            // Adjust current quantity if needed
+            if (this.particles.length > this.maxParticles) {
+                this.particles.splice(this.maxParticles);
+            } else if (this.particles.length < this.maxParticles) {
+                const needed = this.maxParticles - this.particles.length;
+                for (let i = 0; i < needed; i++) {
+                    this.createParticle();
+                }
+            }
+            this.updateUI();
+        }
+
+        if (properties.flee_distance) {
+            this.fleeDistance = properties.flee_distance.value;
+        }
+
+        if (properties.flee_acceleration) {
+            this.fleeAcceleration = properties.flee_acceleration.value;
+        }
     }
 
     init() {
@@ -37,7 +79,7 @@ class SusuwatariCanvas {
 
     setupCanvas() {
         this.resizeCanvas();
-        // Configurar context para melhor performance
+        // Configure context for better performance
         this.ctx.imageSmoothingEnabled = true;
         this.ctx.imageSmoothingQuality = 'high';
     }
@@ -77,7 +119,7 @@ class SusuwatariCanvas {
                 this.particleSize = Math.max(this.minSize, this.particleSize - 1);
             }
 
-            // Atualiza o tamanho de todos os Susuwatari existentes
+            // Update size of all existing Susuwatari
             this.particles.forEach(particle => {
                 particle.baseSize = this.particleSize;
                 particle.size = this.particleSize * particle.sizeMultiplier;
@@ -86,19 +128,20 @@ class SusuwatariCanvas {
 
         // Left click - add particle
         this.canvas.addEventListener('click', (e) => {
-            //verificar se existe um susuwatari no local clicado (considerando forma espinhosa)
+            // Check if there is a susuwatari at the clicked location (considering spiky shape)
             const clickedIndex = this.particles.findIndex(particle => {
                 const dx = e.clientX - particle.x;
                 const dy = e.clientY - particle.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                // Usar um raio um pouco maior para compensar a forma espinhosa
+                // Use a slightly larger radius to compensate for the spiky shape
                 return distance < (particle.size / 2) * 1.2;
             });
 
-            // Se um Susuwatari foi clicado, remover ele. Se não houver susuwatari, criar um novo
+            // If a Susuwatari was clicked, remove it. If there is no susuwatari, create a new one
             if (clickedIndex !== -1) {
                 const removedParticle = this.particles[clickedIndex];
                 this.createSmokeExplosion(removedParticle.x, removedParticle.y, removedParticle.size);
+                this.createSootStain(removedParticle.x, removedParticle.y, removedParticle.size);
                 this.particles.splice(clickedIndex, 1);
                 this.updateUI();
             } else {
@@ -106,7 +149,7 @@ class SusuwatariCanvas {
             }
         });
 
-        // Toggle UI info com clique direito na tela
+        // Toggle UI info with right click on screen
         document.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             const uiInfo = document.querySelector('.ui-info');
@@ -127,10 +170,10 @@ class SusuwatariCanvas {
         const posX = x !== null ? x : Math.random() * this.canvas.width;
         const posY = y !== null ? y : Math.random() * this.canvas.height;
 
-        // Criar variação de tamanho: entre 85% e 115% do tamanho base
+        // Create size variation: between 85% and 115% of base size
         const sizeVariation = 0.85 + Math.random() * 0.3; // 0.85 to 1.15
 
-        // Gerar forma espinhosa única para cada Susuwatari
+        // Generate unique spiky shape for each Susuwatari
         const spikes = 75 + Math.floor(Math.random() * 45); // 75-120 spikes (3x mais)
         const spikePattern = [];
         for (let i = 0; i < spikes; i++) {
@@ -146,11 +189,11 @@ class SusuwatariCanvas {
             y: posY,
             originalX: posX,
             originalY: posY,
-            baseSize: this.particleSize, // Tamanho base
-            sizeMultiplier: sizeVariation, // Multiplicador único para este Susuwatari
-            size: this.particleSize * sizeVariation, // Tamanho final com variação
-            spikeCount: spikes, // Número de espinhos único
-            spikePattern: spikePattern, // Padrão de espinhos único
+            baseSize: this.particleSize, // Base size
+            sizeMultiplier: sizeVariation, // Unique multiplier for this Susuwatari
+            size: this.particleSize * sizeVariation, // Final size with variation
+            spikeCount: spikes, // Unique number of spikes
+            spikePattern: spikePattern, // Unique spike pattern
             isFleeing: false,
             fleeStartTime: 0,
             wobbleOffset: Math.random() * Math.PI * 2,
@@ -160,7 +203,7 @@ class SusuwatariCanvas {
             targetY: posY,
             velocityX: 0,
             velocityY: 0,
-            fleeSpeed: 0.06, // Velocidade aumentada para movimento mais responsivo mas ainda suave
+            fleeSpeed: 0.06, // Increased speed for more responsive but still smooth movement
 
             // Eye properties
             leftPupilX: 0,
@@ -191,12 +234,12 @@ class SusuwatariCanvas {
     }
 
     createSmokeExplosion(x, y, size) {
-        const particleCount = 8 + Math.floor(Math.random() * 6); // 8-14 partículas de fumaça
+        const particleCount = 8 + Math.floor(Math.random() * 6); // 8-14 smoke particles
 
         for (let i = 0; i < particleCount; i++) {
             const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
-            const speed = 1 + Math.random() * 2; // Velocidade de dispersão
-            const smokeSize = size * (0.3 + Math.random() * 0.4); // 30-70% do tamanho original
+            const speed = 1 + Math.random() * 2; // Dispersion speed
+            const smokeSize = size * (0.3 + Math.random() * 0.4); // 30-70% of original size
 
             const smokeParticle = {
                 x: x,
@@ -206,7 +249,7 @@ class SusuwatariCanvas {
                 size: smokeSize,
                 opacity: 0.8,
                 life: 1.0,
-                decay: 0.02 + Math.random() * 0.01 // Velocidade de desaparecimento
+                decay: 0.02 + Math.random() * 0.01 // Fade speed
             };
 
             this.smokeParticles.push(smokeParticle);
@@ -215,22 +258,22 @@ class SusuwatariCanvas {
 
     updateSmokeParticles() {
         this.smokeParticles = this.smokeParticles.filter(smoke => {
-            // Atualizar posição
+            // Update position
             smoke.x += smoke.velocityX;
             smoke.y += smoke.velocityY;
 
-            // Aplicar atrito
+            // Apply friction
             smoke.velocityX *= 0.95;
             smoke.velocityY *= 0.95;
 
-            // Reduzir vida e opacidade
+            // Reduce life and opacity
             smoke.life -= smoke.decay;
             smoke.opacity = smoke.life * 0.8;
 
-            // Aumentar tamanho ligeiramente
+            // Increase size slightly
             smoke.size += 0.2;
 
-            // Remover se a vida acabou
+            // Remove if life is over
             return smoke.life > 0;
         });
     }
@@ -240,7 +283,7 @@ class SusuwatariCanvas {
             this.ctx.save();
             this.ctx.globalAlpha = smoke.opacity;
 
-            // Gradiente de fumaça
+            // Smoke gradient
             const gradient = this.ctx.createRadialGradient(
                 smoke.x, smoke.y, 0,
                 smoke.x, smoke.y, smoke.size / 2
@@ -259,16 +302,16 @@ class SusuwatariCanvas {
     }
 
     createTrailParticle(x, y, size, intensity = 1.0) {
-        // Só criar rastro se houver movimento significativo
-        if (Math.random() < 0.3 * intensity) { // 30% chance base, aumenta com intensidade
+        // Only create trail if there is significant movement
+        if (Math.random() < 0.3 * intensity) { // 30% base chance, increases with intensity
             const trailParticle = {
-                x: x + (Math.random() - 0.5) * size * 0.3, // Pequena variação de posição
+                x: x + (Math.random() - 0.5) * size * 0.3, // Small position variation
                 y: y + (Math.random() - 0.5) * size * 0.3,
-                size: size * (0.1 + Math.random() * 0.15), // 10-25% do tamanho original
+                size: size * (0.1 + Math.random() * 0.15), // 10-25% of original size
                 opacity: 0.4 * intensity,
                 life: 1.0,
-                decay: 0.008 + Math.random() * 0.007, // Desaparece mais lentamente que fumaça
-                velocityX: (Math.random() - 0.5) * 0.2, // Movimento muito sutil
+                decay: 0.008 + Math.random() * 0.007, // Fades slower than smoke
+                velocityX: (Math.random() - 0.5) * 0.2, // Very subtle movement
                 velocityY: (Math.random() - 0.5) * 0.2
             };
 
@@ -278,19 +321,19 @@ class SusuwatariCanvas {
 
     updateTrailParticles() {
         this.trailParticles = this.trailParticles.filter(trail => {
-            // Atualizar posição levemente
+            // Update position slightly
             trail.x += trail.velocityX;
             trail.y += trail.velocityY;
 
-            // Aplicar atrito
+            // Apply friction
             trail.velocityX *= 0.98;
             trail.velocityY *= 0.98;
 
-            // Reduzir vida e opacidade
+            // Reduce life and opacity
             trail.life -= trail.decay;
             trail.opacity = trail.life * 0.4;
 
-            // Remover se a vida acabou
+            // Remove if life is over
             return trail.life > 0;
         });
     }
@@ -300,7 +343,7 @@ class SusuwatariCanvas {
             this.ctx.save();
             this.ctx.globalAlpha = trail.opacity;
 
-            // Cor de fuligem mais escura
+            // Darker soot color
             const gradient = this.ctx.createRadialGradient(
                 trail.x, trail.y, 0,
                 trail.x, trail.y, trail.size / 2
@@ -318,6 +361,97 @@ class SusuwatariCanvas {
         });
     }
 
+    createSootStain(x, y, size) {
+        // Create permanent soot stain at location
+        const stainSize = size * (0.6 + Math.random() * 0.4); // 60-100% of original size
+        const stain = {
+            x: x,
+            y: y,
+            size: stainSize,
+            opacity: 0.5 + Math.random() * 0.3, // Opacity between 50-80%
+            createdAt: Date.now(),
+            duration: 10000, // 10 seconds
+            pattern: [] // Unique irregularity pattern
+        };
+
+        // Create irregular pattern for the stain
+        const spots = 5 + Math.floor(Math.random() * 8); // 5-12 internal spots
+        for (let i = 0; i < spots; i++) {
+            stain.pattern.push({
+                offsetX: (Math.random() - 0.5) * stainSize,
+                offsetY: (Math.random() - 0.5) * stainSize,
+                size: stainSize * (0.2 + Math.random() * 0.4),
+                opacity: 0.3 + Math.random() * 0.4
+            });
+        }
+
+        this.sootStains.push(stain);
+    }
+
+    updateSootStains() {
+        const currentTime = Date.now();
+        this.sootStains = this.sootStains.filter(stain => {
+            const age = currentTime - stain.createdAt;
+
+            // Fade out in the last 2 seconds
+            if (age > 8000) {
+                const fadeProgress = (age - 8000) / 2000; // 0 to 1 in the last 2 seconds
+                stain.currentOpacity = stain.opacity * (1 - fadeProgress);
+            } else {
+                stain.currentOpacity = stain.opacity;
+            }
+
+            return age < stain.duration;
+        });
+    }
+
+    drawSootStains() {
+        this.sootStains.forEach(stain => {
+            this.ctx.save();
+            this.ctx.globalAlpha = stain.currentOpacity;
+
+            // Draw main stain
+            const gradient = this.ctx.createRadialGradient(
+                stain.x, stain.y, 0,
+                stain.x, stain.y, stain.size / 2
+            );
+            gradient.addColorStop(0, '#1a1a1a');
+            gradient.addColorStop(0.5, '#0d0d0d');
+            gradient.addColorStop(1, 'rgba(13, 13, 13, 0)');
+
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.arc(stain.x, stain.y, stain.size / 2, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Desenhar manchas internas irregulares
+            stain.pattern.forEach(spot => {
+                this.ctx.globalAlpha = stain.currentOpacity * spot.opacity;
+
+                const spotGradient = this.ctx.createRadialGradient(
+                    stain.x + spot.offsetX, stain.y + spot.offsetY, 0,
+                    stain.x + spot.offsetX, stain.y + spot.offsetY, spot.size / 2
+                );
+                spotGradient.addColorStop(0, '#0a0a0a');
+                spotGradient.addColorStop(0.7, '#050505');
+                spotGradient.addColorStop(1, 'rgba(5, 5, 5, 0)');
+
+                this.ctx.fillStyle = spotGradient;
+                this.ctx.beginPath();
+                this.ctx.arc(
+                    stain.x + spot.offsetX,
+                    stain.y + spot.offsetY,
+                    spot.size / 2,
+                    0,
+                    Math.PI * 2
+                );
+                this.ctx.fill();
+            });
+
+            this.ctx.restore();
+        });
+    }
+
     checkParticleCollisions() {
         this.particles.forEach(particle => {
             const distance = Math.sqrt(
@@ -325,7 +459,7 @@ class SusuwatariCanvas {
                 Math.pow(particle.y - this.mouseY, 2)
             );
 
-            // Sempre faz o Susuwatari correr na direção oposta do mouse
+            // Always makes the Susuwatari run in the opposite direction from the mouse
             if (distance < this.fleeDistance) {
                 this.makeParticleFlee(particle);
             }
@@ -333,13 +467,13 @@ class SusuwatariCanvas {
     }
 
     makeParticleFlee(particle) {
-        // Só atualiza se não estiver fugindo ou se for uma nova direção
+        // Only update if not fleeing or if it's a new direction
         if (!particle.isFleeing) {
             particle.isFleeing = true;
             particle.fleeStartTime = Date.now();
 
             const angle = Math.atan2(particle.y - this.mouseY, particle.x - this.mouseX);
-            const fleeDistance = 80 + Math.random() * 60; // Distância muito maior: 80-140 pixels
+            const fleeDistance = 80 + Math.random() * 60; // Much larger distance: 80-140 pixels
 
             const newX = particle.x + Math.cos(angle) * fleeDistance;
             const newY = particle.y + Math.sin(angle) * fleeDistance;
@@ -350,7 +484,7 @@ class SusuwatariCanvas {
 
             setTimeout(() => {
                 particle.isFleeing = false;
-            }, 1200); // Tempo otimizado para resposta mais ágil
+            }, 1200); // Optimized time for more agile response
         }
     }
 
@@ -361,18 +495,18 @@ class SusuwatariCanvas {
             const deltaY = particle.targetY - particle.y;
             const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-            if (distance > 0.3) { // Threshold menor para desaceleração mais gradual
-                // Calculate velocity towards target com aceleração/desaceleração
+            if (distance > 0.3) { // Smaller threshold for more gradual deceleration
+                // Calculate velocity towards target with acceleration/deceleration
                 const baseSpeed = particle.isFleeing ? particle.fleeSpeed : particle.fleeSpeed * 0.15;
 
-                // Aceleração: movimento muito mais rápido quando está longe do destino
+                // Acceleration: much faster movement when far from destination
                 const accelerationFactor = particle.isFleeing ?
-                    Math.min(4.0, 1 + distance * 0.04) : // Acelera muito mais quando fugindo (4x max)
+                    Math.min(this.fleeAcceleration, 1 + distance * 0.04) : // Uses customizable property
                     Math.min(1.8, 1 + distance * 0.01);  // Acelera menos quando voltando
 
-                // Desaceleração mais suave: só começa a desacelerar muito perto do destino
+                // Smoother deceleration: only starts to decelerate very close to destination
                 const decelerationFactor = distance < 15 ?
-                    Math.max(0.3, distance / 15) : // Desaceleração mais gradual
+                    Math.max(0.3, distance / 15) : // More gradual deceleration
                     1.0;
 
                 const finalSpeed = baseSpeed * accelerationFactor * decelerationFactor;
@@ -385,7 +519,7 @@ class SusuwatariCanvas {
                 const trailIntensity = Math.min(1.0, movementSpeed * 8); // Intensidade baseada na velocidade
 
                 // Criar rastro de fuligem baseado na velocidade
-                if (trailIntensity > 0.1) { // Só criar rastro se houver movimento significativo
+                if (trailIntensity > 0.1) { // Only create trail if there is significant movement
                     this.createTrailParticle(particle.x, particle.y, particle.size, trailIntensity);
                 }
 
@@ -631,18 +765,19 @@ class SusuwatariCanvas {
     }
 
     refillScreen() {
-        // Remove off-screen particles com explosão de fumaça
+        // Remove off-screen particles with smoke explosion
         const initialCount = this.particles.length;
         this.particles = this.particles.filter(particle => {
             const isOnScreen = particle.x > -50 && particle.x < this.canvas.width + 50 &&
                 particle.y > -50 && particle.y < this.canvas.height + 50;
 
-            // Se a partícula saiu da tela, criar explosão de fumaça
+            // If the particle left the screen, create smoke explosion and stain
             if (!isOnScreen) {
-                // Criar explosão na borda da tela mais próxima
+                // Create explosion at the nearest screen edge
                 const edgeX = Math.max(-50, Math.min(this.canvas.width + 50, particle.x));
                 const edgeY = Math.max(-50, Math.min(this.canvas.height + 50, particle.y));
                 this.createSmokeExplosion(edgeX, edgeY, particle.size);
+                this.createSootStain(edgeX, edgeY, particle.size);
             }
 
             return isOnScreen;
@@ -688,6 +823,10 @@ class SusuwatariCanvas {
         // Update particle movement (smooth animation)
         this.updateParticleMovement();
 
+        // Update and draw soot stains (manchas de fuligem permanentes)
+        this.updateSootStains();
+        this.drawSootStains();
+
         // Update and draw trail particles (rastro de fuligem)
         this.updateTrailParticles();
         this.drawTrailParticles();
@@ -712,7 +851,29 @@ class SusuwatariCanvas {
     }
 }
 
+// Global instance for Wallpaper Engine
+let susuwatariInstance = null;
+
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    new SusuwatariCanvas();
+    susuwatariInstance = new SusuwatariCanvas();
 });
+
+// Global functions required for Wallpaper Engine
+window.wallpaperPropertyListener = {
+    applyUserProperties: function (properties) {
+        if (susuwatariInstance) {
+            susuwatariInstance.applyUserProperties(properties);
+        }
+    }
+};
+
+// Alternative function for compatibility
+if (typeof window.wallpaperRegisterAudioListener === 'undefined') {
+    window.wallpaperRegisterAudioListener = function () { };
+}
+
+// Exportar para compatibilidade
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = SusuwatariCanvas;
+}
