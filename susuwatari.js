@@ -15,6 +15,7 @@ class SusuwatariCanvas {
         this.particleSize = 18;
         this.fleeAcceleration = 4.0;
         this.maxRunDistance = 300; // Maximum distance before getting tired (configurable)
+        this.sleepTime = 10; // Time in seconds before Susuwatari fall asleep when mouse is still
 
         // Limits for manual interaction
         this.minSize = 10;
@@ -179,6 +180,10 @@ class SusuwatariCanvas {
         if (properties.max_run_distance) {
             this.maxRunDistance = properties.max_run_distance.value;
         }
+
+        if (properties.sleep_time) {
+            this.sleepTime = properties.sleep_time.value;
+        }
     }
 
     init() {
@@ -207,6 +212,14 @@ class SusuwatariCanvas {
             this.mouseY = e.clientY;
             this.lastMouseMove = Date.now();
             this.isMouseStill = false;
+
+            // Wake up all sleeping Susuwatari when mouse moves
+            this.particles.forEach(particle => {
+                if (particle.isSleeping) {
+                    particle.isSleeping = false;
+                    particle.zzz = []; // Clear sleep animation
+                }
+            });
 
             if (this.mouseStillTimeout) {
                 clearTimeout(this.mouseStillTimeout);
@@ -316,7 +329,7 @@ class SusuwatariCanvas {
             energy: 1.0, // Energy level (1.0 = full energy, 0.0 = exhausted)
             maxRunTime: 3000 + Math.random() * 4000, // Can run for 3-7 seconds before getting tired
             restTime: 2000 + Math.random() * 3000, // Rest for 2-5 seconds when tired
-            
+
             // Distance tracking system
             totalDistanceTraveled: 0, // Total distance traveled while fleeing
             lastPosition: { x: posX, y: posY }, // Track previous position for distance calculation
@@ -327,6 +340,11 @@ class SusuwatariCanvas {
             velocityX: 0,
             velocityY: 0,
             fleeSpeed: 0.06, // Increased speed for more responsive but still smooth movement
+
+            // Sleep system
+            isSleeping: false,
+            sleepStartTime: 0,
+            zzz: [], // Array of Z's for sleep animation
 
             // Eye properties
             leftPupilX: 0,
@@ -689,7 +707,7 @@ class SusuwatariCanvas {
                 const oldY = particle.y;
                 particle.x += particle.velocityX;
                 particle.y += particle.velocityY;
-                
+
                 // Track distance traveled if fleeing
                 if (particle.isFleeing) {
                     const distanceMoved = Math.sqrt(
@@ -717,6 +735,53 @@ class SusuwatariCanvas {
                 particle.targetY = Math.max(particle.size / 2, Math.min(this.canvas.height - particle.size / 2, particle.targetY));
             }
         });
+    }
+
+    updateSleepSystem() {
+        if (this.isMouseStill || Date.now() - this.lastMouseMove > this.sleepTime * 1000) {
+            const currentTime = Date.now();
+
+            this.particles.forEach(particle => {
+                // Don't make fleeing or tired particles sleep
+                if (particle.isFleeing || particle.isTired) {
+                    return;
+                }
+
+                // Check if particle should start sleeping
+                if (!particle.isSleeping && Date.now() - this.lastMouseMove > this.sleepTime * 1000) {
+                    particle.isSleeping = true;
+                    particle.sleepStartTime = currentTime;
+                    particle.zzz = []; // Initialize Z animation array
+                }
+
+                // Update Z animation for sleeping particles
+                if (particle.isSleeping) {
+                    // Add new Z every 1.5-2.5 seconds
+                    const timeSinceSleep = currentTime - particle.sleepStartTime;
+                    const zCount = Math.floor(timeSinceSleep / 2000); // New Z every 2 seconds
+
+                    if (particle.zzz.length < zCount + 1 && particle.zzz.length < 3) {
+                        particle.zzz.push({
+                            x: particle.x + (Math.random() - 0.5) * 30 + particle.size * 0.3,
+                            y: particle.y - particle.size * 0.5 - (particle.zzz.length * 15),
+                            size: 8 + Math.random() * 4,
+                            opacity: 1.0,
+                            lifetime: 0
+                        });
+                    }
+
+                    // Update existing Z's
+                    particle.zzz.forEach(z => {
+                        z.lifetime += 16; // Assuming 60fps
+                        z.y -= 0.3; // Float upward slowly
+                        z.opacity = Math.max(0, 1.0 - z.lifetime / 3000); // Fade over 3 seconds
+                    });
+
+                    // Remove old Z's
+                    particle.zzz = particle.zzz.filter(z => z.opacity > 0);
+                }
+            });
+        }
     }
 
     removeNearestParticle(mouseX, mouseY) {
@@ -858,8 +923,8 @@ class SusuwatariCanvas {
 
         this.ctx.globalAlpha = 1;
 
-        // Draw eyes
-        if (particle.eyeOpacity > 0) {
+        // Draw eyes (skip if sleeping)
+        if (particle.eyeOpacity > 0 && !particle.isSleeping) {
             // Apply bass pulse effect to eye size only
             const bassPulseMultiplier = this.getBassPulseMultiplier();
 
@@ -962,6 +1027,18 @@ class SusuwatariCanvas {
             this.ctx.fill();
         }
 
+        // Draw sleep Z's if sleeping
+        if (particle.isSleeping && particle.zzz.length > 0) {
+            particle.zzz.forEach(z => {
+                this.ctx.globalAlpha = z.opacity;
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.font = `${z.size}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText('Z', z.x, z.y);
+            });
+            this.ctx.globalAlpha = 1.0; // Reset alpha
+        }
+
         this.ctx.restore();
     }
 
@@ -1029,6 +1106,9 @@ class SusuwatariCanvas {
 
         // Update particle movement (smooth animation)
         this.updateParticleMovement();
+
+        // Update sleep system
+        this.updateSleepSystem();
 
         // Update and draw soot stains (manchas de fuligem permanentes)
         this.updateSootStains();
