@@ -293,6 +293,13 @@ class SusuwatariCanvas {
             });
         });
 
+
+        this.canvas.addEventListener("dblclick", (e) => {
+            e.preventDefault();
+            this.createCollectible(e.clientX, e.clientY);
+
+
+        });
         // Left click - add particle
         this.canvas.addEventListener('click', (e) => {
             // Check if there is a susuwatari at the clicked location (considering spiky shape)
@@ -304,13 +311,23 @@ class SusuwatariCanvas {
                 return distance < (particle.size / 2) * 1.2;
             });
 
+            // Check if there is a collectible at the clicked location
+            const clickedCollectibleIndex = this.collectibles.findIndex(collectible => {
+                const dx = e.clientX - collectible.x;
+                const dy = e.clientY - collectible.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                return distance < collectible.size / 2;
+            });
 
             if (e.ctrlKey) {
-                this.createCollectible(e.clientX, e.clientY);
+                this.createParticle(e.clientX, e.clientY);
             } else if (e.shiftKey) {
                 this.createCollectible(e.clientX, e.clientY, true);
             } else if (e.altKey) {
                 this.createCollectible(e.clientX, e.clientY, false);
+            } else if (clickedCollectibleIndex !== -1) {
+                // Handle collectible click
+                this.handleCollectibleClick(clickedCollectibleIndex, e.clientX, e.clientY);
             } else {
                 // If a Susuwatari was clicked, remove it. If there is no susuwatari, create a new one
                 if (clickedIndex !== -1) {
@@ -320,7 +337,14 @@ class SusuwatariCanvas {
                     this.particles.splice(clickedIndex, 1);
                     this.updateUI();
                 } else {
-                    this.createParticle(e.clientX, e.clientY);
+                    if (Math.random() < .20) // 20% chance to add a Susuwatari
+                    {
+                        this.createParticle(e.clientX, e.clientY);
+                    }
+                    else {
+                        this.createCollectible(e.clientX, e.clientY);
+
+                    }
                 }
             }
 
@@ -422,23 +446,40 @@ class SusuwatariCanvas {
     }
 
     createCollectible(x, y, isCoal) {
-        // Randomly choose between coal stone (70%) or colored star (30%)
+        // Randomly choose between coal stone (50%) or colored star (50%)
         if (isCoal === undefined) {
-            isCoal = Math.random() < 0.7;
+            isCoal = Math.random() < 0.5;
+        }
+
+        // Get average Susuwatari size for scaling
+        const avgSusuwatariSize = this.particles.length > 0 ?
+            this.particles.reduce((sum, p) => sum + p.size, 0) / this.particles.length :
+            this.initialSize;
+
+        let collectibleSize;
+        if (isCoal) {
+            // Coal: 50% to 150% of Susuwatari size
+            const sizeMultiplier = 0.5 + Math.random() * 1.0; // 0.5 to 1.5
+            collectibleSize = avgSusuwatariSize * sizeMultiplier;
+        } else {
+            // Stars: ALWAYS smaller than Susuwatari (30% to 90%)
+            const sizeMultiplier = 0.3 + Math.random() * 0.6; // 0.3 to 0.9
+            collectibleSize = avgSusuwatariSize * sizeMultiplier;
         }
 
         const collectible = {
             x: x,
             y: y,
             type: isCoal ? 'coal' : 'star',
-            size: isCoal ? 8 + Math.random() * 6 : 12 + Math.random() * 8, // Coal: 8-14px, Star: 12-20px
+            size: collectibleSize,
             color: isCoal ? '#111111' : this.getRandomStarColor(), // Much darker coal color
             rotation: Math.random() * Math.PI * 2, // Random rotation for visual variety
             createdTime: Date.now(),
             pulseOffset: Math.random() * Math.PI * 2, // For gentle pulsing animation
             sparkles: isCoal ? [] : this.createSparkles(), // Stars have sparkle effects
             coalShape: isCoal ? this.generateCoalShape() : null, // Pre-generated coal shape
-            assignedTo: null // Which Susuwatari is assigned to collect this
+            assignedTo: null, // Which Susuwatari is assigned to collect this
+            isLargerThanSusuwatari: collectibleSize > avgSusuwatariSize // Flag for explosion check
         };
 
         this.collectibles.push(collectible);
@@ -447,6 +488,71 @@ class SusuwatariCanvas {
         this.assignCollectibleToSusuwatari(collectible);
 
         return collectible;
+    }
+
+    handleCollectibleClick(collectibleIndex, clickX, clickY) {
+        const collectible = this.collectibles[collectibleIndex];
+
+        if (collectible.type === 'star') {
+            // Change star color
+            collectible.color = this.getRandomStarColor();
+        } else if (collectible.type === 'coal') {
+            // Split coal into 2 pieces with 50% smaller size
+            const newSize = collectible.size * 0.5;
+
+            // Create two new coal pieces slightly offset from original position
+            const offset = collectible.size * 0.3;
+            this.createCollectibleAt(collectible.x - offset, collectible.y - offset, newSize, true);
+            this.createCollectibleAt(collectible.x + offset, collectible.y + offset, newSize, true);
+
+            // Remove original coal
+            this.collectibles.splice(collectibleIndex, 1);
+        }
+
+        // Restart collection animation - reassign collectibles to Susuwatari
+        this.reassignAllCollectibles();
+    }
+
+    createCollectibleAt(x, y, size, isCoal) {
+        const avgSusuwatariSize = this.particles.length > 0 ?
+            this.particles.reduce((sum, p) => sum + p.size, 0) / this.particles.length :
+            this.initialSize;
+
+        const collectible = {
+            x: x,
+            y: y,
+            type: isCoal ? 'coal' : 'star',
+            size: size,
+            color: isCoal ? '#111111' : this.getRandomStarColor(),
+            rotation: Math.random() * Math.PI * 2,
+            createdTime: Date.now(),
+            pulseOffset: Math.random() * Math.PI * 2,
+            sparkles: isCoal ? [] : this.createSparkles(),
+            coalShape: isCoal ? this.generateCoalShape() : null,
+            assignedTo: null,
+            isLargerThanSusuwatari: size > avgSusuwatariSize
+        };
+
+        this.collectibles.push(collectible);
+        this.assignCollectibleToSusuwatari(collectible);
+        return collectible;
+    }
+
+    reassignAllCollectibles() {
+        // Reset all current assignments
+        this.particles.forEach(particle => {
+            particle.targetCollectible = null;
+            particle.isSeekingCollectible = false;
+        });
+
+        this.collectibles.forEach(collectible => {
+            collectible.assignedTo = null;
+        });
+
+        // Reassign all collectibles
+        this.collectibles.forEach(collectible => {
+            this.assignCollectibleToSusuwatari(collectible);
+        });
     }
 
     getRandomStarColor() {
@@ -941,8 +1047,8 @@ class SusuwatariCanvas {
             const currentTime = Date.now();
 
             this.particles.forEach(particle => {
-                // Don't make fleeing, tired, or dizzy particles sleep
-                if (particle.isFleeing || particle.isTired || particle.isDizzy) {
+                // Don't make fleeing, tired, dizzy, or collectible-seeking particles sleep
+                if (particle.isFleeing || particle.isTired || particle.isDizzy || particle.isSeekingCollectible) {
                     return;
                 }
 
@@ -1000,19 +1106,39 @@ class SusuwatariCanvas {
                 const collectionDistance = susuwatari.size / 2 + collectible.size;
 
                 if (distance < collectionDistance) {
-                    // Collectible collected!
-                    susuwatari.targetCollectible = null;
-                    susuwatari.isSeekingCollectible = false;
+                    // Check if collectible is larger than Susuwatari - if so, explode!
+                    if (collectible.isLargerThanSusuwatari && collectible.size > susuwatari.size) {
+                        // Create explosion effect like when clicked
+                        this.createSmokeExplosion(susuwatari.x, susuwatari.y, susuwatari.size);
 
-                    // Create collection effect
-                    this.createCollectionEffect(collectible.x, collectible.y, collectible.type, collectible.color);
+                        // Remove the Susuwatari that touched the large collectible
+                        const particleIndex = this.particles.indexOf(susuwatari);
+                        if (particleIndex > -1) {
+                            this.particles.splice(particleIndex, 1);
+                        }                        // Create collection effect for the collectible
+                        this.createCollectionEffect(collectible.x, collectible.y, collectible.type, collectible.color);
 
-                    // If it's a coal stone, leave soot stain at the location
-                    if (collectible.type === 'coal') {
-                        this.createSootStain(collectible.x, collectible.y, collectible.size * 1.5);
+                        // If it's a coal stone, leave soot stain at the location
+                        if (collectible.type === 'coal') {
+                            this.createSootStain(collectible.x, collectible.y, collectible.size * 1.5);
+                        }
+
+                        return false; // Remove collectible
+                    } else {
+                        // Normal collection for smaller collectibles
+                        susuwatari.targetCollectible = null;
+                        susuwatari.isSeekingCollectible = false;
+
+                        // Create collection effect
+                        this.createCollectionEffect(collectible.x, collectible.y, collectible.type, collectible.color);
+
+                        // If it's a coal stone, leave soot stain at the location
+                        if (collectible.type === 'coal') {
+                            this.createSootStain(collectible.x, collectible.y, collectible.size * 1.5);
+                        }
+
+                        return false; // Remove collectible
                     }
-
-                    return false; // Remove collectible
                 }
 
                 // If Susuwatari became unavailable (sleeping, dizzy, etc.), reassign
