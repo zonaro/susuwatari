@@ -32,9 +32,7 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 
 ### Background Customization
 - **Custom Background Images**: Upload your own wallpaper images to personalize the experience
-- **Custom Color Themes**: Choose custom background colors when no image is set
-- **System Integration**: Option to use your Windows system accent color for seamless theme integration
-- **Gradient Effects**: All color backgrounds are applied with gradient effects for visual depth
+- **Default Gradient**: Beautiful default blue gradient when no image is set
 
 ### Customizable Properties (Wallpaper Engine)
 
@@ -82,17 +80,7 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 #### Background Image
 - **Type**: File Selector (Image)
 - **Default**: None
-- **Description**: Upload a custom background image for your wallpaper. Supports common image formats (JPEG, PNG, BMP, GIF, SVG, WebP). When an image is selected, it will be displayed as the background with cover scaling and center positioning.
-
-#### Background Color (when no image)
-- **Type**: Color Picker
-- **Default**: Deep Blue Gradient (0.1 0.13 0.38)
-- **Description**: Choose a custom background color that will be used when no background image is set. The color will be applied as a gradient from light to dark for visual depth.
-
-#### Use System Accent Color as Background
-- **Type**: Toggle (On/Off)
-- **Default**: Off
-- **Description**: When enabled and no background image is set, uses your system's accent color as the background instead of the custom color. Creates a gradient effect that matches your Windows theme for a personalized experience.
+- **Description**: Upload a custom background image for your wallpaper. Supports common image formats (JPEG, PNG, BMP, GIF, SVG, WebP). When an image is selected, it will be displayed as the background with cover scaling and center positioning. When no image is set, uses the default blue gradient.
 
 ## Wallpaper Engine Installation
 
@@ -114,9 +102,9 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 ## Background Customization Tips
 
 - **For best results with custom images**: Use high-resolution images that look good with moving particles
-- **Color combinations**: Choose darker colors or images to ensure Susuwatari remain visible
-- **System accent color**: Perfect for matching your desktop theme across all applications
+- **Dark backgrounds recommended**: Choose darker images to ensure Susuwatari remain visible
 - **Image formats supported**: JPEG, PNG, BMP, GIF, SVG, WebP
+- **Default gradient**: Beautiful blue gradient is used when no custom image is selected
 
 ## Project Structure
 

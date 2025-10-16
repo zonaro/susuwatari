@@ -35,8 +35,6 @@ This project creates an interactive HTML5 Canvas implementation of Susuwatari (s
 6. **Bass Pulse Intensity** (0.0-3.0x, default: 1.0x) - Controls eye size pulsing with bass
 7. **Audio Visualization** (On/Off, default: On) - Master toggle for all audio effects
 8. **Background Image** (File upload) - Upload custom background images
-9. **Background Color** (Color picker, default: deep blue) - Custom background color when no image
-10. **Use System Accent Color** (On/Off, default: Off) - Use Windows accent color as background
 
 ## Audio-Reactive Features:
 - Real-time audio processing (~30 Hz) with smoothing
