@@ -79,6 +79,12 @@
                 "max": 60,
                 "step": 1
             },
+            "sleep_enabled": {
+                "order": 950,
+                "text": "Enable Sleep System",
+                "type": "bool",
+                "value": true
+            },
             "rest_timeout": {
                 "order": 1000,
                 "text": "Rest Timeout When Dizzy (seconds)",

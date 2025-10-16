@@ -16,6 +16,7 @@ class SusuwatariCanvas {
         this.fleeAcceleration = 4.0;
         this.maxRunDistance = 300; // Maximum distance before getting tired (configurable)
         this.sleepTime = 10; // Time in seconds before Susuwatari fall asleep when mouse is still
+        this.sleepEnabled = true; // Toggle to enable/disable sleep system
         this.restTimeout = 5; // Time in seconds to rest when dizzy/tired (configurable)
 
         // Limits for manual interaction
@@ -190,6 +191,20 @@ class SusuwatariCanvas {
             this.sleepTime = properties.sleep_time.value;
         }
 
+        if (properties.sleep_enabled) {
+            this.sleepEnabled = properties.sleep_enabled.value;
+
+            // If sleep is disabled, wake up all sleeping particles
+            if (!this.sleepEnabled) {
+                this.particles.forEach(particle => {
+                    if (particle.isSleeping) {
+                        particle.isSleeping = false;
+                        particle.zzz = []; // Clear sleep animation
+                    }
+                });
+            }
+        }
+
         if (properties.rest_timeout) {
             this.restTimeout = properties.rest_timeout.value;
         }
@@ -236,13 +251,15 @@ class SusuwatariCanvas {
             // Check for dizziness-inducing rapid movement around Susuwatari
             this.checkForDizziness();
 
-            // Wake up all sleeping Susuwatari when mouse moves
-            this.particles.forEach(particle => {
-                if (particle.isSleeping) {
-                    particle.isSleeping = false;
-                    particle.zzz = []; // Clear sleep animation
-                }
-            });
+            // Wake up all sleeping Susuwatari when mouse moves (only if sleep is enabled)
+            if (this.sleepEnabled) {
+                this.particles.forEach(particle => {
+                    if (particle.isSleeping) {
+                        particle.isSleeping = false;
+                        particle.zzz = []; // Clear sleep animation
+                    }
+                });
+            }
 
             if (this.mouseStillTimeout) {
                 clearTimeout(this.mouseStillTimeout);
@@ -787,8 +804,8 @@ class SusuwatariCanvas {
             }
         });
 
-        // Update sleep system
-        if (this.isMouseStill || Date.now() - this.lastMouseMove > this.sleepTime * 1000) {
+        // Update sleep system (only if sleep is enabled)
+        if (this.sleepEnabled && (this.isMouseStill || Date.now() - this.lastMouseMove > this.sleepTime * 1000)) {
             const currentTime = Date.now();
 
             this.particles.forEach(particle => {
@@ -1046,8 +1063,8 @@ class SusuwatariCanvas {
 
         this.ctx.globalAlpha = 1;
 
-        // Draw eyes (skip if sleeping)
-        if (particle.eyeOpacity > 0 && !particle.isSleeping) {
+        // Draw eyes (skip if sleeping and sleep is enabled)
+        if (particle.eyeOpacity > 0 && !(this.sleepEnabled && particle.isSleeping)) {
             // Apply bass pulse effect to eye size only
             const bassPulseMultiplier = this.getBassPulseMultiplier();
 
@@ -1181,8 +1198,8 @@ class SusuwatariCanvas {
             this.ctx.fill();
         }
 
-        // Draw sleep Z's if sleeping
-        if (particle.isSleeping && particle.zzz.length > 0) {
+        // Draw sleep Z's if sleeping and sleep is enabled
+        if (this.sleepEnabled && particle.isSleeping && particle.zzz.length > 0) {
             particle.zzz.forEach(z => {
                 this.ctx.globalAlpha = z.opacity;
                 this.ctx.fillStyle = '#ffffff';
