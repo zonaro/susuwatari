@@ -32,6 +32,9 @@ class SusuwatariCanvas {
         // Permanent soot stain system
         this.sootStains = [];
 
+        // Collectibles system (coal stones and colored stars)
+        this.collectibles = [];
+
         // Performance tracking
         this.lastFrameTime = Date.now();
         this.frameCount = 0;
@@ -313,16 +316,15 @@ class SusuwatariCanvas {
             }
         });
 
-        // Toggle UI info with right click on screen
-        document.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            const uiInfo = document.querySelector('.ui-info');
-            if (uiInfo.style.display === 'none') {
-                uiInfo.style.display = 'block';
-            } else {
-                uiInfo.style.display = 'none';
+        // Middle click - create collectible (coal stone or colored star)
+        this.canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 1) { // Middle mouse button
+                e.preventDefault();
+                this.createCollectible(e.clientX, e.clientY);
             }
         });
+
+
 
         // Window resize
         window.addEventListener('resize', () => {
@@ -393,6 +395,10 @@ class SusuwatariCanvas {
             dizzinessLevel: 0, // How dizzy (0-1, affects wobble intensity)
             lastDizzyTime: 0, // Last time this particle was made dizzy (for cooldown)
 
+            // Collectible targeting system
+            targetCollectible: null, // Which collectible this Susuwatari is going towards
+            isSeekingCollectible: false, // Whether actively seeking a collectible
+
             // Eye properties
             leftPupilX: 0,
             leftPupilY: 0,
@@ -409,6 +415,96 @@ class SusuwatariCanvas {
         this.particles.push(particle);
         this.updateUI();
         return particle;
+    }
+
+    createCollectible(x, y) {
+        // Randomly choose between coal stone (70%) or colored star (30%)
+        const isCoal = Math.random() < 0.7;
+
+        const collectible = {
+            x: x,
+            y: y,
+            type: isCoal ? 'coal' : 'star',
+            size: isCoal ? 8 + Math.random() * 6 : 12 + Math.random() * 8, // Coal: 8-14px, Star: 12-20px
+            color: isCoal ? '#111111' : this.getRandomStarColor(), // Much darker coal color
+            rotation: Math.random() * Math.PI * 2, // Random rotation for visual variety
+            createdTime: Date.now(),
+            pulseOffset: Math.random() * Math.PI * 2, // For gentle pulsing animation
+            sparkles: isCoal ? [] : this.createSparkles(), // Stars have sparkle effects
+            coalShape: isCoal ? this.generateCoalShape() : null, // Pre-generated coal shape
+            assignedTo: null // Which Susuwatari is assigned to collect this
+        };
+
+        this.collectibles.push(collectible);
+
+        // Assign a random Susuwatari to collect this item
+        this.assignCollectibleToSusuwatari(collectible);
+
+        return collectible;
+    }
+
+    getRandomStarColor() {
+        const colors = [
+            '#FFD700', // Gold
+            '#FF69B4', // Hot Pink
+            '#00CED1', // Dark Turquoise
+            '#FF6347', // Tomato
+            '#32CD32', // Lime Green
+            '#9370DB', // Medium Purple
+            '#FF4500', // Orange Red
+            '#00BFFF'  // Deep Sky Blue
+        ];
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    createSparkles() {
+        const sparkles = [];
+        const sparkleCount = 3 + Math.floor(Math.random() * 4); // 3-6 sparkles
+
+        for (let i = 0; i < sparkleCount; i++) {
+            sparkles.push({
+                offsetX: (Math.random() - 0.5) * 25, // Random position around star
+                offsetY: (Math.random() - 0.5) * 25,
+                size: 1 + Math.random() * 2, // Small sparkles
+                phase: Math.random() * Math.PI * 2, // For twinkling animation
+                speed: 0.1 + Math.random() * 0.1 // Twinkling speed
+            });
+        }
+
+        return sparkles;
+    }
+
+    generateCoalShape() {
+        // Generate a fixed irregular shape for coal that won't change
+        const points = 6 + Math.floor(Math.random() * 3); // 6-8 points
+        const shape = [];
+
+        for (let i = 0; i < points; i++) {
+            const angle = (Math.PI * 2 * i) / points;
+            const radiusVariation = 0.6 + Math.random() * 0.4; // 0.6 to 1.0
+            shape.push({
+                angle: angle,
+                radiusMultiplier: radiusVariation
+            });
+        }
+
+        return shape;
+    }
+
+    assignCollectibleToSusuwatari(collectible) {
+        // Find available Susuwatari (not sleeping, not dizzy, not already seeking)
+        const availableSusuwatari = this.particles.filter(particle =>
+            !particle.isSleeping &&
+            !particle.isDizzy &&
+            !particle.isSeekingCollectible
+        );
+
+        if (availableSusuwatari.length > 0) {
+            const randomSusuwatari = availableSusuwatari[Math.floor(Math.random() * availableSusuwatari.length)];
+            randomSusuwatari.targetCollectible = collectible;
+            randomSusuwatari.isSeekingCollectible = true;
+            collectible.assignedTo = randomSusuwatari;
+        }
     }
 
     createInitialParticles() {
@@ -731,11 +827,25 @@ class SusuwatariCanvas {
                     Math.min(1.8, 1 + distance * 0.01);  // Acelera menos quando voltando
 
                 // Smoother deceleration: only starts to decelerate very close to destination
-                const decelerationFactor = distance < 15 ?
-                    Math.max(0.3, distance / 15) : // More gradual deceleration
-                    1.0;
+                let decelerationFactor;
+                if (particle.isSeekingCollectible && particle.targetCollectible) {
+                    // Special deceleration for collectible seeking - minimal deceleration, only milliseconds before contact
+                    const collectibleDistance = Math.sqrt(
+                        Math.pow(particle.targetCollectible.x - particle.x, 2) +
+                        Math.pow(particle.targetCollectible.y - particle.y, 2)
+                    );
+                    // Much smaller deceleration zone - only 2-3 pixels before contact
+                    const collectionThreshold = particle.size / 2 + particle.targetCollectible.size + 2;
 
-                const finalSpeed = baseSpeed * accelerationFactor * decelerationFactor * energyFactor;
+                    decelerationFactor = collectibleDistance < collectionThreshold ?
+                        Math.max(0.85, collectibleDistance / collectionThreshold) : // Very minimal deceleration only at contact distance
+                        1.0;
+                } else {
+                    // Normal deceleration for other movements
+                    decelerationFactor = distance < 15 ?
+                        Math.max(0.3, distance / 15) : // More gradual deceleration
+                        1.0;
+                } const finalSpeed = baseSpeed * accelerationFactor * decelerationFactor * energyFactor;
 
                 particle.velocityX = deltaX * finalSpeed;
                 particle.velocityY = deltaY * finalSpeed;
@@ -770,22 +880,38 @@ class SusuwatariCanvas {
                 particle.velocityY = 0;
             }
 
-            // If not fleeing, slowly return to a more natural position
+            // If not fleeing, check for collectible seeking or natural movement
             if (!particle.isFleeing && distance < 2) {
-                // Set target to slightly wobble around current position
-                let wobbleAmount = 5;
+                // Prioritize collectible seeking over wobbling
+                if (particle.isSeekingCollectible && particle.targetCollectible) {
+                    // Move towards the collectible
+                    const collectible = particle.targetCollectible;
+                    const collectibleDistance = Math.sqrt(
+                        Math.pow(collectible.x - particle.x, 2) +
+                        Math.pow(collectible.y - particle.y, 2)
+                    );
 
-                // Increase wobble if dizzy
-                if (particle.isDizzy) {
-                    wobbleAmount = 15 + (particle.dizzinessLevel * 20); // Much more erratic movement when dizzy
+                    // Set target towards collectible if not too close
+                    if (collectibleDistance > particle.size / 2 + collectible.size) {
+                        particle.targetX = collectible.x;
+                        particle.targetY = collectible.y;
+                    }
+                } else {
+                    // Normal wobbling behavior
+                    let wobbleAmount = 5;
+
+                    // Increase wobble if dizzy
+                    if (particle.isDizzy) {
+                        wobbleAmount = 15 + (particle.dizzinessLevel * 20); // Much more erratic movement when dizzy
+                    }
+
+                    particle.targetX = particle.x + (Math.random() - 0.5) * wobbleAmount;
+                    particle.targetY = particle.y + (Math.random() - 0.5) * wobbleAmount;
+
+                    // Keep within canvas bounds
+                    particle.targetX = Math.max(particle.size / 2, Math.min(this.canvas.width - particle.size / 2, particle.targetX));
+                    particle.targetY = Math.max(particle.size / 2, Math.min(this.canvas.height - particle.size / 2, particle.targetY));
                 }
-
-                particle.targetX = particle.x + (Math.random() - 0.5) * wobbleAmount;
-                particle.targetY = particle.y + (Math.random() - 0.5) * wobbleAmount;
-
-                // Keep within canvas bounds
-                particle.targetX = Math.max(particle.size / 2, Math.min(this.canvas.width - particle.size / 2, particle.targetX));
-                particle.targetY = Math.max(particle.size / 2, Math.min(this.canvas.height - particle.size / 2, particle.targetY));
             }
         });
     }
@@ -849,6 +975,198 @@ class SusuwatariCanvas {
                 }
             });
         }
+    }
+
+    updateCollectibles() {
+        const currentTime = Date.now();
+
+        // Update collectibles and check for collection
+        this.collectibles = this.collectibles.filter(collectible => {
+            // Check if assigned Susuwatari reached the collectible
+            if (collectible.assignedTo) {
+                const susuwatari = collectible.assignedTo;
+                const distance = Math.sqrt(
+                    Math.pow(susuwatari.x - collectible.x, 2) +
+                    Math.pow(susuwatari.y - collectible.y, 2)
+                );
+
+                // Collection distance threshold
+                const collectionDistance = susuwatari.size / 2 + collectible.size;
+
+                if (distance < collectionDistance) {
+                    // Collectible collected!
+                    susuwatari.targetCollectible = null;
+                    susuwatari.isSeekingCollectible = false;
+
+                    // Create collection effect
+                    this.createCollectionEffect(collectible.x, collectible.y, collectible.type, collectible.color);
+
+                    // If it's a coal stone, leave soot stain at the location
+                    if (collectible.type === 'coal') {
+                        this.createSootStain(collectible.x, collectible.y, collectible.size * 1.5);
+                    }
+
+                    return false; // Remove collectible
+                }
+
+                // If Susuwatari became unavailable (sleeping, dizzy, etc.), reassign
+                if (susuwatari.isSleeping || susuwatari.isDizzy) {
+                    susuwatari.targetCollectible = null;
+                    susuwatari.isSeekingCollectible = false;
+                    collectible.assignedTo = null;
+                    this.assignCollectibleToSusuwatari(collectible);
+                }
+            } else {
+                // Try to reassign if no one is assigned
+                this.assignCollectibleToSusuwatari(collectible);
+            }
+
+            // Update sparkles for stars
+            if (collectible.type === 'star' && collectible.sparkles) {
+                collectible.sparkles.forEach(sparkle => {
+                    sparkle.phase += sparkle.speed;
+                });
+            }
+
+            return true; // Keep collectible
+        });
+    }
+
+    createCollectionEffect(x, y, type, color) {
+        // Create small particles effect when collectible is collected
+        const particleCount = type === 'star' ? 8 : 5;
+
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (Math.PI * 2 * i) / particleCount;
+            const speed = 2 + Math.random() * 3;
+
+            this.trailParticles.push({
+                x: x,
+                y: y,
+                velocityX: Math.cos(angle) * speed,
+                velocityY: Math.sin(angle) * speed,
+                size: 3 + Math.random() * 3,
+                opacity: 1.0,
+                color: color,
+                lifetime: 0,
+                maxLifetime: 1000 + Math.random() * 500 // 1-1.5 seconds
+            });
+        }
+    }
+
+    drawCollectibles() {
+        const currentTime = Date.now();
+
+        this.collectibles.forEach(collectible => {
+            let size;
+
+            if (collectible.type === 'coal') {
+                // Coal stones don't pulse/wobble - static size
+                size = collectible.size;
+            } else {
+                // Stars continue to pulse
+                const pulseTime = (currentTime + collectible.pulseOffset) * 0.003;
+                const pulseFactor = 1 + Math.sin(pulseTime) * 0.1; // Gentle pulsing
+                size = collectible.size * pulseFactor;
+            }
+
+            this.ctx.save();
+
+            if (collectible.type === 'coal') {
+                // Draw coal stone with pre-generated shape and rotation
+                this.ctx.fillStyle = collectible.color;
+                this.ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+                this.ctx.shadowBlur = 6;
+
+                // Use pre-generated irregular coal shape with rotation
+                this.ctx.beginPath();
+                collectible.coalShape.forEach((point, i) => {
+                    const radius = size * point.radiusMultiplier;
+                    const rotatedAngle = point.angle + collectible.rotation;
+                    const x = collectible.x + Math.cos(rotatedAngle) * radius;
+                    const y = collectible.y + Math.sin(rotatedAngle) * radius;
+
+                    if (i === 0) {
+                        this.ctx.moveTo(x, y);
+                    } else {
+                        this.ctx.lineTo(x, y);
+                    }
+                });
+                this.ctx.closePath();
+                this.ctx.fill();
+
+            } else { // star
+                // Draw colored star with rounded points and rotation
+                this.ctx.fillStyle = collectible.color;
+                this.ctx.shadowColor = collectible.color;
+                this.ctx.shadowBlur = 8;
+
+                // 5-pointed star with rounded points
+                this.ctx.beginPath();
+                const spikes = 5;
+                const outerRadius = size;
+                const innerRadius = size * 0.4;
+                const cornerRadius = size * 0.15; // Radius for rounded corners
+
+                // Create path with rounded corners
+                for (let i = 0; i < spikes; i++) {
+                    // Outer point
+                    const outerAngle = (Math.PI * 2 * i) / spikes + collectible.rotation;
+                    const outerX = collectible.x + Math.cos(outerAngle) * outerRadius;
+                    const outerY = collectible.y + Math.sin(outerAngle) * outerRadius;
+
+                    // Inner points (left and right of the outer point)
+                    const innerAngle1 = outerAngle - Math.PI / spikes;
+                    const innerAngle2 = outerAngle + Math.PI / spikes;
+                    const innerX1 = collectible.x + Math.cos(innerAngle1) * innerRadius;
+                    const innerY1 = collectible.y + Math.sin(innerAngle1) * innerRadius;
+                    const innerX2 = collectible.x + Math.cos(innerAngle2) * innerRadius;
+                    const innerY2 = collectible.y + Math.sin(innerAngle2) * innerRadius;
+
+                    if (i === 0) {
+                        this.ctx.moveTo(innerX1, innerY1);
+                    }
+
+                    // Draw rounded line to outer point and then to next inner point
+                    this.ctx.arcTo(outerX, outerY, innerX2, innerY2, cornerRadius);
+                    this.ctx.lineTo(innerX2, innerY2);
+                }
+
+                this.ctx.closePath();
+                this.ctx.fill();
+
+                // Draw sparkles
+                if (collectible.sparkles) {
+                    this.ctx.fillStyle = '#FFFFFF';
+                    this.ctx.shadowBlur = 2;
+
+                    collectible.sparkles.forEach(sparkle => {
+                        const sparkleOpacity = (Math.sin(sparkle.phase) + 1) / 2; // 0-1
+                        this.ctx.globalAlpha = sparkleOpacity * 0.8;
+
+                        // Apply rotation to sparkles too
+                        const sparkleDistance = Math.sqrt(sparkle.offsetX * sparkle.offsetX + sparkle.offsetY * sparkle.offsetY);
+                        const sparkleAngle = Math.atan2(sparkle.offsetY, sparkle.offsetX) + collectible.rotation;
+                        const rotatedSparkleX = collectible.x + Math.cos(sparkleAngle) * sparkleDistance;
+                        const rotatedSparkleY = collectible.y + Math.sin(sparkleAngle) * sparkleDistance;
+
+                        this.ctx.beginPath();
+                        this.ctx.arc(
+                            rotatedSparkleX,
+                            rotatedSparkleY,
+                            sparkle.size,
+                            0,
+                            Math.PI * 2
+                        );
+                        this.ctx.fill();
+                    });
+
+                    this.ctx.globalAlpha = 1.0;
+                }
+            }
+
+            this.ctx.restore();
+        });
     }
 
     checkForDizziness() {
@@ -952,9 +1270,22 @@ class SusuwatariCanvas {
         this.particles.forEach(particle => {
             const eyeSize = particle.size * 0.17;
 
-            // Calculate pupil position based on mouse direction
-            const deltaX = this.mouseX - particle.x;
-            const deltaY = this.mouseY - particle.y;
+            let targetX, targetY;
+
+            // Determine what the Susuwatari should look at
+            if (particle.isSeekingCollectible && particle.targetCollectible) {
+                // Look at the collectible they're seeking
+                targetX = particle.targetCollectible.x;
+                targetY = particle.targetCollectible.y;
+            } else {
+                // Look at the mouse (default behavior)
+                targetX = this.mouseX;
+                targetY = this.mouseY;
+            }
+
+            // Calculate pupil position based on target direction
+            const deltaX = targetX - particle.x;
+            const deltaY = targetY - particle.y;
             const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
             const maxMove = eyeSize * 0.25;
@@ -1281,6 +1612,9 @@ class SusuwatariCanvas {
         // Update sleep system
         this.updateSleepSystem();
 
+        // Update collectibles system
+        this.updateCollectibles();
+
         // Update and draw soot stains (manchas de fuligem permanentes)
         this.updateSootStains();
         this.drawSootStains();
@@ -1301,6 +1635,9 @@ class SusuwatariCanvas {
         this.particles.forEach(particle => {
             this.drawSusuwatari(particle);
         });
+
+        // Draw collectibles
+        this.drawCollectibles();
 
         // Update UI
         this.calculateFPS();
