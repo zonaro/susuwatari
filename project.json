@@ -1,6 +1,6 @@
 {
     "contentrating": "Everyone",
-    "description": "Interactive Susuwatari (soot sprites) wallpaper inspired by Studio Ghibli films. These cute dust bunnies run away from your mouse cursor with realistic physics and leave soot trails behind. Features customizable size, count, flee distance, acceleration, and audio-reactive spikes that pulse and rotate to the beat of your music. Each Susuwatari has a unique rotation and orientation, creating diverse visual patterns when music plays. They also pulse in size to bass frequencies, creating a rhythmic breathing effect. When the mouse doesn't move for a configurable time, Susuwatari fall asleep with their eyes closed and animated 'ZZZ' floating above them. Includes particle effects like smoke explosions and soot stains when they disappear.",
+    "description": "Interactive Susuwatari (soot sprites) wallpaper inspired by Studio Ghibli films. These cute dust bunnies run away from your mouse cursor with realistic physics and leave soot trails behind. Features customizable size, count, flee distance, acceleration, and audio-reactive spikes that pulse and rotate to the beat of your music. Each Susuwatari has a unique rotation and orientation, creating diverse visual patterns when music plays. They also pulse in size to bass frequencies, creating a rhythmic breathing effect. When the mouse doesn't move for a configurable time, Susuwatari fall asleep with their eyes closed and animated 'ZZZ' floating above them. Move your mouse rapidly in circles around a Susuwatari to make it dizzy - it will show 'X' eyes and wobble around until it recovers! Includes particle effects like smoke explosions and soot stains when they disappear.",
     "file": "index.html",
     "general": {
         "properties": {
@@ -77,6 +77,15 @@
                 "value": 10,
                 "min": 3,
                 "max": 60,
+                "step": 1
+            },
+            "rest_timeout": {
+                "order": 1000,
+                "text": "Rest Timeout When Dizzy (seconds)",
+                "type": "slider",
+                "value": 5,
+                "min": 2,
+                "max": 15,
                 "step": 1
             }
         }

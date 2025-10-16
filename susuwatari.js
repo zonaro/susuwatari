@@ -16,6 +16,7 @@ class SusuwatariCanvas {
         this.fleeAcceleration = 4.0;
         this.maxRunDistance = 300; // Maximum distance before getting tired (configurable)
         this.sleepTime = 10; // Time in seconds before Susuwatari fall asleep when mouse is still
+        this.restTimeout = 5; // Time in seconds to rest when dizzy/tired (configurable)
 
         // Limits for manual interaction
         this.minSize = 10;
@@ -42,6 +43,10 @@ class SusuwatariCanvas {
         this.audioIntensity = 1.0; // Multiplier for audio effect intensity
         this.bassPulseIntensity = 1.0; // Multiplier for bass pulse effect on size
         this.audioVisualizationEnabled = true; // Toggle for audio visualization
+
+        // Mouse movement tracking for dizziness detection
+        this.mouseHistory = []; // Track recent mouse positions
+        this.maxMouseHistoryLength = 20; // Keep last 20 positions (increased from 10)
 
         this.init();
     }
@@ -184,6 +189,10 @@ class SusuwatariCanvas {
         if (properties.sleep_time) {
             this.sleepTime = properties.sleep_time.value;
         }
+
+        if (properties.rest_timeout) {
+            this.restTimeout = properties.rest_timeout.value;
+        }
     }
 
     init() {
@@ -208,10 +217,24 @@ class SusuwatariCanvas {
     setupEventListeners() {
         // Mouse movement
         this.canvas.addEventListener('mousemove', (e) => {
+            const currentTime = Date.now();
             this.mouseX = e.clientX;
             this.mouseY = e.clientY;
-            this.lastMouseMove = Date.now();
+            this.lastMouseMove = currentTime;
             this.isMouseStill = false;
+
+            // Add current position to mouse history
+            this.mouseHistory.push({
+                x: this.mouseX,
+                y: this.mouseY,
+                time: currentTime
+            });
+
+            // Keep only recent history (last 1000ms for more data)
+            this.mouseHistory = this.mouseHistory.filter(pos => currentTime - pos.time < 1000);
+
+            // Check for dizziness-inducing rapid movement around Susuwatari
+            this.checkForDizziness();
 
             // Wake up all sleeping Susuwatari when mouse moves
             this.particles.forEach(particle => {
@@ -345,6 +368,13 @@ class SusuwatariCanvas {
             isSleeping: false,
             sleepStartTime: 0,
             zzz: [], // Array of Z's for sleep animation
+
+            // Dizziness system
+            isDizzy: false,
+            dizzyStartTime: 0,
+            dizzyUntil: 0, // Time when dizziness ends
+            dizzinessLevel: 0, // How dizzy (0-1, affects wobble intensity)
+            lastDizzyTime: 0, // Last time this particle was made dizzy (for cooldown)
 
             // Eye properties
             leftPupilX: 0,
@@ -600,11 +630,11 @@ class SusuwatariCanvas {
                 Math.pow(particle.y - this.mouseY, 2)
             );
 
-            // Only flee if not tired and within flee distance
-            if (distance < this.fleeDistance && !particle.isTired) {
+            // Only flee if not tired and not dizzy and within flee distance
+            if (distance < this.fleeDistance && !particle.isTired && !particle.isDizzy) {
                 this.makeParticleFlee(particle);
-            } else if (distance >= this.fleeDistance && particle.isFleeing && !particle.isTired) {
-                // Stop fleeing when mouse is far enough (but only if not tired)
+            } else if (distance >= this.fleeDistance && particle.isFleeing && !particle.isTired && !particle.isDizzy) {
+                // Stop fleeing when mouse is far enough (but only if not tired or dizzy)
                 particle.isFleeing = false;
             }
         });
@@ -726,7 +756,13 @@ class SusuwatariCanvas {
             // If not fleeing, slowly return to a more natural position
             if (!particle.isFleeing && distance < 2) {
                 // Set target to slightly wobble around current position
-                const wobbleAmount = 5;
+                let wobbleAmount = 5;
+
+                // Increase wobble if dizzy
+                if (particle.isDizzy) {
+                    wobbleAmount = 15 + (particle.dizzinessLevel * 20); // Much more erratic movement when dizzy
+                }
+
                 particle.targetX = particle.x + (Math.random() - 0.5) * wobbleAmount;
                 particle.targetY = particle.y + (Math.random() - 0.5) * wobbleAmount;
 
@@ -738,12 +774,26 @@ class SusuwatariCanvas {
     }
 
     updateSleepSystem() {
+        const currentTime = Date.now();
+
+        // Update dizziness system
+        this.particles.forEach(particle => {
+            if (particle.isDizzy && currentTime > particle.dizzyUntil) {
+                // Recovery from dizziness
+                particle.isDizzy = false;
+                particle.dizzinessLevel = 0;
+                particle.isTired = false;
+                particle.energy = 1.0;
+            }
+        });
+
+        // Update sleep system
         if (this.isMouseStill || Date.now() - this.lastMouseMove > this.sleepTime * 1000) {
             const currentTime = Date.now();
 
             this.particles.forEach(particle => {
-                // Don't make fleeing or tired particles sleep
-                if (particle.isFleeing || particle.isTired) {
+                // Don't make fleeing, tired, or dizzy particles sleep
+                if (particle.isFleeing || particle.isTired || particle.isDizzy) {
                     return;
                 }
 
@@ -782,6 +832,79 @@ class SusuwatariCanvas {
                 }
             });
         }
+    }
+
+    checkForDizziness() {
+        if (this.mouseHistory.length < 15) return; // Need at least 15 positions to check (increased from 5)
+
+        this.particles.forEach(particle => {
+            // Skip if already dizzy, sleeping, tired, or recently made dizzy
+            const dizzinessCooldown = 10000; // 10 seconds cooldown between dizziness
+            const currentTime = Date.now();
+            if (particle.isDizzy || particle.isSleeping || particle.isTired ||
+                (currentTime - particle.lastDizzyTime < dizzinessCooldown)) {
+                return;
+            }
+
+            const particleDistance = Math.sqrt(
+                Math.pow(particle.x - this.mouseX, 2) +
+                Math.pow(particle.y - this.mouseY, 2)
+            );
+
+            // Only check particles within reasonable distance
+            if (particleDistance > this.fleeDistance * 2) return;
+
+            // Calculate if mouse is moving rapidly around this particle
+            let totalDistance = 0;
+            let circularMovement = 0;
+            const centerX = particle.x;
+            const centerY = particle.y;
+
+            for (let i = 1; i < this.mouseHistory.length; i++) {
+                const curr = this.mouseHistory[i];
+                const prev = this.mouseHistory[i - 1];
+
+                // Calculate movement distance
+                const moveDist = Math.sqrt(
+                    Math.pow(curr.x - prev.x, 2) + Math.pow(curr.y - prev.y, 2)
+                );
+                totalDistance += moveDist;
+
+                // Calculate angle change relative to particle center
+                const prevAngle = Math.atan2(prev.y - centerY, prev.x - centerX);
+                const currAngle = Math.atan2(curr.y - centerY, curr.x - centerX);
+                let angleDiff = currAngle - prevAngle;
+
+                // Normalize angle difference
+                if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+                if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+                circularMovement += Math.abs(angleDiff);
+            }
+
+            // Criteria for dizziness: rapid movement + significant circular motion
+            const timeSpan = this.mouseHistory[this.mouseHistory.length - 1].time - this.mouseHistory[0].time;
+            const speed = totalDistance / (timeSpan / 1000); // pixels per second
+            const totalAngleChange = circularMovement;
+
+            // Make Susuwatari dizzy if mouse moves fast and in circles around them
+            // Much more restrictive criteria: need more speed and more circular movement
+            if (speed > 500 && totalAngleChange > Math.PI * 4) { // More than 720 degrees (2 full circles) of movement + higher speed
+                this.makeSusuwatariDizzy(particle);
+            }
+        });
+    }
+
+    makeSusuwatariDizzy(particle) {
+        const currentTime = Date.now();
+        particle.isDizzy = true;
+        particle.dizzyStartTime = currentTime;
+        particle.dizzyUntil = currentTime + (this.restTimeout * 1000); // Use configurable rest timeout
+        particle.dizzinessLevel = 0.5 + Math.random() * 0.5; // Random dizziness intensity (0.5-1.0)
+        particle.isTired = true; // Consider them tired while dizzy
+        particle.isFleeing = false; // Stop fleeing
+        particle.energy = 0.2; // Low energy while dizzy
+        particle.lastDizzyTime = currentTime; // Record when this particle was made dizzy
     }
 
     removeNearestParticle(mouseX, mouseY) {
@@ -990,27 +1113,58 @@ class SusuwatariCanvas {
             const proximityPupilMultiplier = 1 + (proximityRatio * 0.8); // Up to 80% larger pupils when mouse is very close
             const pupilSize = basePupilSize * proximityPupilMultiplier;
 
-            // Left pupil
-            this.ctx.beginPath();
-            this.ctx.arc(
-                leftEyeX + particle.leftPupilX,
-                leftEyeY + particle.leftPupilY,
-                pupilSize / 2,
-                0,
-                Math.PI * 2
-            );
-            this.ctx.fill();
+            // Render pupils or dizziness effect
+            if (particle.isDizzy) {
+                // Draw X's instead of normal pupils when dizzy
+                this.ctx.strokeStyle = '#000000';
+                this.ctx.lineWidth = pupilSize * 0.15;
 
-            // Right pupil
-            this.ctx.beginPath();
-            this.ctx.arc(
-                rightEyeX + particle.rightPupilX,
-                rightEyeY + particle.rightPupilY,
-                pupilSize / 2,
-                0,
-                Math.PI * 2
-            );
-            this.ctx.fill();
+                // Left eye X
+                const leftPupilCenterX = leftEyeX + particle.leftPupilX;
+                const leftPupilCenterY = leftEyeY + particle.leftPupilY;
+                const xSize = pupilSize * 0.6;
+
+                this.ctx.beginPath();
+                this.ctx.moveTo(leftPupilCenterX - xSize / 2, leftPupilCenterY - xSize / 2);
+                this.ctx.lineTo(leftPupilCenterX + xSize / 2, leftPupilCenterY + xSize / 2);
+                this.ctx.moveTo(leftPupilCenterX + xSize / 2, leftPupilCenterY - xSize / 2);
+                this.ctx.lineTo(leftPupilCenterX - xSize / 2, leftPupilCenterY + xSize / 2);
+                this.ctx.stroke();
+
+                // Right eye X
+                const rightPupilCenterX = rightEyeX + particle.rightPupilX;
+                const rightPupilCenterY = rightEyeY + particle.rightPupilY;
+
+                this.ctx.beginPath();
+                this.ctx.moveTo(rightPupilCenterX - xSize / 2, rightPupilCenterY - xSize / 2);
+                this.ctx.lineTo(rightPupilCenterX + xSize / 2, rightPupilCenterY + xSize / 2);
+                this.ctx.moveTo(rightPupilCenterX + xSize / 2, rightPupilCenterY - xSize / 2);
+                this.ctx.lineTo(rightPupilCenterX - xSize / 2, rightPupilCenterY + xSize / 2);
+                this.ctx.stroke();
+            } else {
+                // Normal pupils
+                // Left pupil
+                this.ctx.beginPath();
+                this.ctx.arc(
+                    leftEyeX + particle.leftPupilX,
+                    leftEyeY + particle.leftPupilY,
+                    pupilSize / 2,
+                    0,
+                    Math.PI * 2
+                );
+                this.ctx.fill();
+
+                // Right pupil
+                this.ctx.beginPath();
+                this.ctx.arc(
+                    rightEyeX + particle.rightPupilX,
+                    rightEyeY + particle.rightPupilY,
+                    pupilSize / 2,
+                    0,
+                    Math.PI * 2
+                );
+                this.ctx.fill();
+            }
 
             // Add eye highlights with fixed positions
             this.ctx.globalAlpha = particle.eyeOpacity * 0.8;
