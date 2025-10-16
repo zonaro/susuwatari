@@ -304,25 +304,29 @@ class SusuwatariCanvas {
                 return distance < (particle.size / 2) * 1.2;
             });
 
-            // If a Susuwatari was clicked, remove it. If there is no susuwatari, create a new one
-            if (clickedIndex !== -1) {
-                const removedParticle = this.particles[clickedIndex];
-                this.createSmokeExplosion(removedParticle.x, removedParticle.y, removedParticle.size);
-                this.createSootStain(removedParticle.x, removedParticle.y, removedParticle.size);
-                this.particles.splice(clickedIndex, 1);
-                this.updateUI();
+
+            if (e.ctrlKey) {
+                this.createCollectible(e.clientX, e.clientY);
+            } else if (e.shiftKey) {
+                this.createCollectible(e.clientX, e.clientY, true);
+            } else if (e.altKey) {
+                this.createCollectible(e.clientX, e.clientY, false);
             } else {
-                this.createParticle(e.clientX, e.clientY);
+                // If a Susuwatari was clicked, remove it. If there is no susuwatari, create a new one
+                if (clickedIndex !== -1) {
+                    const removedParticle = this.particles[clickedIndex];
+                    this.createSmokeExplosion(removedParticle.x, removedParticle.y, removedParticle.size);
+                    this.createSootStain(removedParticle.x, removedParticle.y, removedParticle.size);
+                    this.particles.splice(clickedIndex, 1);
+                    this.updateUI();
+                } else {
+                    this.createParticle(e.clientX, e.clientY);
+                }
             }
+
         });
 
-        // Middle click - create collectible (coal stone or colored star)
-        this.canvas.addEventListener('mousedown', (e) => {
-            if (e.button === 1) { // Middle mouse button
-                e.preventDefault();
-                this.createCollectible(e.clientX, e.clientY);
-            }
-        });
+
 
 
 
@@ -417,9 +421,11 @@ class SusuwatariCanvas {
         return particle;
     }
 
-    createCollectible(x, y) {
+    createCollectible(x, y, isCoal) {
         // Randomly choose between coal stone (70%) or colored star (30%)
-        const isCoal = Math.random() < 0.7;
+        if (isCoal === undefined) {
+            isCoal = Math.random() < 0.7;
+        }
 
         const collectible = {
             x: x,
