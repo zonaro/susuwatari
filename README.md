@@ -1,6 +1,6 @@
-# Susuwatari - Interactive Wallpaper Engine Wallpaper
+# Susuwatari - Interactive Audio-Reactive Wallpaper Engine Wallpaper
 
-An interactive implementation of the famous Susuwatari (soot sprites) from Studio Ghibli films, especially "Spirited Away" and "My Neighbor Totoro", optimized for Wallpaper Engine.
+An interactive implementation of the famous Susuwatari (soot sprites) from Studio Ghibli films, especially "Spirited Away" and "My Neighbor Totoro", optimized for Wallpaper Engine with audio-reactive features.
 
 ## Features
 
@@ -11,9 +11,20 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 - **Scroll for Size**: Use mouse wheel to increase/decrease Susuwatari size
 - **Click to Add/Remove**: Click on empty area to add, on a Susuwatari to remove
 
+### Audio-Reactive Features
+- **Music-Responsive Spikes**: The spikes of each Susuwatari pulse and move to the beat of your music
+- **Bass Eye Pulsing**: Susuwatari eyes grow and shrink responding to bass frequencies, creating an expressive reaction
+- **Unique Orientations**: Each Susuwatari has a unique fixed rotation, making spikes react differently to audio
+- **Static Rotation**: Susuwatari maintain their initial orientation for consistent visual diversity
+- **Full Frequency Spectrum**: Uses both left and right audio channels across all frequencies
+- **Smooth Audio Processing**: Audio data is smoothed to prevent erratic movement
+- **Dual Intensity Controls**: Separate controls for spike reactivity and bass eye pulsing intensity
+
 ### Visual Effects
-- **Spiky Shape**: Each Susuwatari has a unique shape with 75-120 spikes
-- **Expressive Eyes**: Pupils that follow the mouse and dilate when scared
+- **Spiky Shape**: Each Susuwatari has a unique shape with 75-120 spikes that react to music
+- **Unique Rotation**: Each sprite has its own fixed rotation angle, creating diverse visual patterns
+- **Audio-Reactive Spikes**: Spikes that pulse and move to the beat of your music
+- **Expressive Eyes**: Pupils that follow the mouse and dilate based on mouse proximity (closer mouse = more scared expression)
 - **Blinking System**: Randomly blink between 3-10 seconds
 - **Soot Trails**: Leave dark trails when moving
 - **Smoke Explosion**: When disappearing, explode into smoke particles
@@ -44,6 +55,23 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 - **Range**: 1.0 - 8.0x
 - **Default**: 4.0x
 - **Description**: Maximum acceleration speed when fleeing
+
+#### Audio Reactivity Intensity
+- **Type**: Slider
+- **Range**: 0.0 - 3.0x
+- **Default**: 1.0x
+- **Description**: Controls how strongly the Susuwatari spikes react to music. Set to 0 to disable audio reactivity.
+
+#### Bass Pulse Intensity
+- **Type**: Slider
+- **Range**: 0.0 - 3.0x
+- **Default**: 1.0x
+- **Description**: Controls how much the Susuwatari eyes grow and shrink with bass frequencies. Set to 0 to disable bass pulsing effect on eyes.
+
+#### Audio Visualization
+- **Type**: Toggle (On/Off)
+- **Default**: On
+- **Description**: Master toggle to enable or disable all audio visualization effects. When turned off, completely disables spike reactivity, bass pulsing, and audio-reactive rotation, returning to a purely static visual experience.
 
 ## Wallpaper Engine Installation
 
@@ -76,6 +104,7 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 - **HTML5 Canvas**: High performance rendering
 - **JavaScript ES6+**: Physics and interaction logic
 - **Wallpaper Engine API**: Integration with customizable properties
+- **Wallpaper Engine Audio API**: Real-time audio processing for music reactivity
 
 ## Performance
 
@@ -83,6 +112,7 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 - **Canvas 2D**: Much more efficient than DOM manipulation
 - **Auto-cleanup**: Automatically removes off-screen particles
 - **Memory management**: Intelligent particle control
+- **Audio Processing**: ~30 Hz audio data processing with smoothing for optimal performance
 
 ## Inspiration
 

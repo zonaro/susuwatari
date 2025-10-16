@@ -33,7 +33,101 @@ class SusuwatariCanvas {
         this.frameCount = 0;
         this.fps = 0;
 
+        // Audio reactive system
+        this.audioData = new Array(128).fill(0);
+        this.smoothedAudioData = new Array(128).fill(0);
+        this.audioSmoothingFactor = 0.5; // Reduced for more responsive bass (was 0.7)
+        this.audioIntensity = 1.0; // Multiplier for audio effect intensity
+        this.bassPulseIntensity = 1.0; // Multiplier for bass pulse effect on size
+        this.audioVisualizationEnabled = true; // Toggle for audio visualization
+
         this.init();
+    }
+
+    // Audio listener function for Wallpaper Engine
+    wallpaperAudioListener(audioArray) {
+        // Update raw audio data
+        for (let i = 0; i < audioArray.length; i++) {
+            // Limit audio values to prevent spikes above 1.0
+            this.audioData[i] = Math.min(audioArray[i], 1.0);
+        }
+
+        // Apply smoothing to prevent erratic movement
+        for (let i = 0; i < this.audioData.length; i++) {
+            this.smoothedAudioData[i] =
+                this.smoothedAudioData[i] * this.audioSmoothingFactor +
+                this.audioData[i] * (1 - this.audioSmoothingFactor);
+        }
+    }
+
+    // Get bass-reactive size multiplier for eye pulsing effect
+    getBassPulseMultiplier() {
+        // Return 1.0 (no effect) if audio visualization is disabled
+        if (!this.audioVisualizationEnabled) {
+            return 1.0;
+        }
+
+        // Focus on bass frequencies (0-15 for deep bass only)
+        let maxBassLevel = 0;
+        const bassChannels = 16; // Focus on deepest bass frequencies
+
+        // Sample bass from both left and right channels - find the peak
+        for (let i = 0; i < bassChannels; i++) {
+            const leftBass = this.smoothedAudioData[i] || 0;
+            const rightBass = this.smoothedAudioData[i + 64] || 0;
+            const peakBass = Math.max(leftBass, rightBass);
+            if (peakBass > maxBassLevel) {
+                maxBassLevel = peakBass;
+            }
+        }
+
+        // Apply intensity multiplier and create eye-appropriate pulse effect
+        const pulseEffect = maxBassLevel * this.bassPulseIntensity;
+
+        // Return multiplier with moderate effect for eyes: 1.0 (normal) + pulse effect (max +60%)
+        const multiplier = 1.0 + (pulseEffect * 0.6); // Eyes grow up to 1.6x size with strong bass
+
+        return multiplier;
+    }    // Get audio-reactive spike multiplier for a specific spike index
+    getAudioSpikeMultiplier(spikeIndex, totalSpikes) {
+        // Return 1.0 (no effect) if audio visualization is disabled
+        if (!this.audioVisualizationEnabled) {
+            return 1.0;
+        }
+
+        // Map spike index to audio frequency range
+        const frequencyRatio = spikeIndex / totalSpikes;
+
+        // Different frequency ranges for different visual effects
+        let audioIndex, channelWeight;
+
+        if (frequencyRatio < 0.3) {
+            // Bass frequencies (0-19) - strongest effect on first 30% of spikes
+            audioIndex = Math.floor(frequencyRatio * 64);
+            channelWeight = 1.5; // Bass hits harder
+        } else if (frequencyRatio < 0.7) {
+            // Mid frequencies (20-44) - moderate effect on middle 40% of spikes
+            audioIndex = Math.floor(20 + (frequencyRatio - 0.3) * 62.5);
+            channelWeight = 1.0;
+        } else {
+            // High frequencies (45-63) - subtle effect on last 30% of spikes
+            audioIndex = Math.floor(45 + (frequencyRatio - 0.7) * 60);
+            channelWeight = 0.8; // Treble is more subtle
+        }
+
+        // Ensure audioIndex is within bounds
+        audioIndex = Math.min(Math.max(audioIndex, 0), 63);
+
+        // Use both left and right channels for fuller effect
+        const leftChannel = this.smoothedAudioData[audioIndex] || 0;
+        const rightChannel = this.smoothedAudioData[audioIndex + 64] || 0;
+
+        // Combine channels with weight and apply intensity multiplier
+        const audioLevel = Math.max(leftChannel, rightChannel) * channelWeight * this.audioIntensity;
+
+        // Return multiplier: 1.0 (normal) + audio effect (0-0.8 extra for bass, less for others)
+        const maxEffect = frequencyRatio < 0.3 ? 0.8 : (frequencyRatio < 0.7 ? 0.5 : 0.3);
+        return 1.0 + (audioLevel * maxEffect);
     }
 
     // Function to handle Wallpaper Engine properties
@@ -67,6 +161,18 @@ class SusuwatariCanvas {
 
         if (properties.flee_acceleration) {
             this.fleeAcceleration = properties.flee_acceleration.value;
+        }
+
+        if (properties.audio_intensity) {
+            this.audioIntensity = properties.audio_intensity.value;
+        }
+
+        if (properties.bass_pulse_intensity) {
+            this.bassPulseIntensity = properties.bass_pulse_intensity.value;
+        }
+
+        if (properties.audio_visualization_enabled) {
+            this.audioVisualizationEnabled = properties.audio_visualization_enabled.value;
         }
     }
 
@@ -194,6 +300,7 @@ class SusuwatariCanvas {
             size: this.particleSize * sizeVariation, // Final size with variation
             spikeCount: spikes, // Unique number of spikes
             spikePattern: spikePattern, // Unique spike pattern
+            rotation: Math.random() * Math.PI * 2, // Unique fixed rotation for each Susuwatari (0 to 2π)
             isFleeing: false,
             fleeStartTime: 0,
             wobbleOffset: Math.random() * Math.PI * 2,
@@ -424,7 +531,7 @@ class SusuwatariCanvas {
             this.ctx.arc(stain.x, stain.y, stain.size / 2, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // Desenhar manchas internas irregulares
+            // Draw irregular internal spots
             stain.pattern.forEach(spot => {
                 this.ctx.globalAlpha = stain.currentOpacity * spot.opacity;
 
@@ -489,7 +596,11 @@ class SusuwatariCanvas {
     }
 
     updateParticleMovement() {
+        const currentTime = Date.now();
+
         this.particles.forEach(particle => {
+            // No continuous rotation - particles keep their initial rotation
+
             // Calculate distance to target
             const deltaX = particle.targetX - particle.x;
             const deltaY = particle.targetY - particle.y;
@@ -614,6 +725,8 @@ class SusuwatariCanvas {
     drawSusuwatari(particle) {
         const x = particle.x;
         const y = particle.y;
+
+        // Use original size (no bass pulse effect on body size)
         const size = particle.size;
 
         this.ctx.save();
@@ -629,11 +742,16 @@ class SusuwatariCanvas {
         // Draw spiky susuwatari body using stored pattern
         const radius = size / 2;
 
-        // Create spiky path using the particle's unique pattern
+        // Create spiky path using the particle's unique pattern with audio reactivity and rotation
         this.ctx.beginPath();
         for (let i = 0; i < particle.spikeCount; i++) {
-            const angle = (i / particle.spikeCount) * Math.PI * 2;
-            const radiusMultiplier = particle.spikePattern[i];
+            const angle = (i / particle.spikeCount) * Math.PI * 2 + particle.rotation; // Apply unique rotation
+            let radiusMultiplier = particle.spikePattern[i];
+
+            // Apply audio-reactive effect to spike length
+            const audioMultiplier = this.getAudioSpikeMultiplier(i, particle.spikeCount);
+            radiusMultiplier *= audioMultiplier;
+
             const currentRadius = radius * radiusMultiplier;
 
             const pointX = x + Math.cos(angle) * currentRadius;
@@ -682,16 +800,35 @@ class SusuwatariCanvas {
 
         // Draw eyes
         if (particle.eyeOpacity > 0) {
-            // Olhos maiores e pupilas dilatadas quando fugindo (efeito de susto)
+            // Apply bass pulse effect to eye size only
+            const bassPulseMultiplier = this.getBassPulseMultiplier();
+
+            // Calculate mouse proximity for eye dilation effect
+            const mouseDistance = Math.sqrt(
+                Math.pow(particle.x - this.mouseX, 2) +
+                Math.pow(particle.y - this.mouseY, 2)
+            );
+
+            // Eye dilation based on mouse proximity (closer = more dilated)
+            const maxProximityDistance = this.fleeDistance * 1.5; // 1.5x flee distance for gradual effect
+            const proximityRatio = Math.max(0, 1 - (mouseDistance / maxProximityDistance)); // 1 = very close, 0 = far
+            const proximityEyeMultiplier = 1 + (proximityRatio * 0.6); // Up to 60% larger when mouse is very close
+
+            // Olhos maiores baseado na proximidade do mouse (efeito de susto)
             const baseEyeSize = size * 0.17;
-            const eyeSize = particle.isFleeing ? baseEyeSize * 1.4 : baseEyeSize; // 40% maiores quando fugindo
+            const proximityEyeSize = baseEyeSize * proximityEyeMultiplier;
+            const eyeSize = proximityEyeSize * bassPulseMultiplier; // Apply bass pulse to eyes
             const eyePosition = size * 0.17;
 
             this.ctx.globalAlpha = particle.eyeOpacity;
 
-            // Left eye
-            const leftEyeX = x - eyePosition;
-            const leftEyeY = y - eyePosition;
+            // Keep eyes in fixed positions (no rotation) - always in the same relative position
+            const leftEyeAngle = -Math.PI * 0.75; // Fixed 135 degrees (top-left)
+            const rightEyeAngle = -Math.PI * 0.25; // Fixed 45 degrees (top-right)
+
+            // Left eye with fixed position
+            const leftEyeX = x + Math.cos(leftEyeAngle) * eyePosition;
+            const leftEyeY = y + Math.sin(leftEyeAngle) * eyePosition;
 
             // Eye gradient
             const eyeGradient = this.ctx.createRadialGradient(leftEyeX, leftEyeY, 0, leftEyeX, leftEyeY, eyeSize / 2);
@@ -704,9 +841,9 @@ class SusuwatariCanvas {
             this.ctx.arc(leftEyeX, leftEyeY, eyeSize / 2, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // Right eye
-            const rightEyeX = x + eyePosition;
-            const rightEyeY = y - eyePosition;
+            // Right eye with fixed position
+            const rightEyeX = x + Math.cos(rightEyeAngle) * eyePosition;
+            const rightEyeY = y + Math.sin(rightEyeAngle) * eyePosition;
 
             this.ctx.fillStyle = eyeGradient;
             this.ctx.beginPath();
@@ -720,9 +857,10 @@ class SusuwatariCanvas {
             pupilGradient.addColorStop(1, '#333333');
 
             this.ctx.fillStyle = pupilGradient;
-            // Pupilas dilatadas quando fugindo (efeito de susto/medo)
+            // Pupilas dilatadas baseado na proximidade do mouse (efeito de susto/medo)
             const basePupilSize = eyeSize * 0.4;
-            const pupilSize = particle.isFleeing ? basePupilSize * 1.6 : basePupilSize; // 60% maiores quando fugindo
+            const proximityPupilMultiplier = 1 + (proximityRatio * 0.8); // Up to 80% larger pupils when mouse is very close
+            const pupilSize = basePupilSize * proximityPupilMultiplier;
 
             // Left pupil
             this.ctx.beginPath();
@@ -746,7 +884,7 @@ class SusuwatariCanvas {
             );
             this.ctx.fill();
 
-            // Add eye highlights
+            // Add eye highlights with fixed positions
             this.ctx.globalAlpha = particle.eyeOpacity * 0.8;
             this.ctx.fillStyle = '#ffffff';
 
@@ -859,6 +997,13 @@ document.addEventListener('DOMContentLoaded', () => {
     susuwatariInstance = new SusuwatariCanvas();
 });
 
+// Audio listener function for Wallpaper Engine
+function wallpaperAudioListener(audioArray) {
+    if (susuwatariInstance) {
+        susuwatariInstance.wallpaperAudioListener(audioArray);
+    }
+}
+
 // Global functions required for Wallpaper Engine
 window.wallpaperPropertyListener = {
     applyUserProperties: function (properties) {
@@ -871,6 +1016,9 @@ window.wallpaperPropertyListener = {
 // Alternative function for compatibility
 if (typeof window.wallpaperRegisterAudioListener === 'undefined') {
     window.wallpaperRegisterAudioListener = function () { };
+} else {
+    // Register the audio listener with Wallpaper Engine
+    window.wallpaperRegisterAudioListener(wallpaperAudioListener);
 }
 
 // Exportar para compatibilidade

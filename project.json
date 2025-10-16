@@ -1,6 +1,6 @@
 {
     "contentrating": "Everyone",
-    "description": "Interactive Susuwatari (soot sprites) wallpaper inspired by Studio Ghibli films. These cute dust bunnies run away from your mouse cursor with realistic physics and leave soot trails behind. Features customizable size, count, flee distance, and acceleration. Includes particle effects like smoke explosions and soot stains when they disappear.",
+    "description": "Interactive Susuwatari (soot sprites) wallpaper inspired by Studio Ghibli films. These cute dust bunnies run away from your mouse cursor with realistic physics and leave soot trails behind. Features customizable size, count, flee distance, acceleration, and audio-reactive spikes that pulse and rotate to the beat of your music. Each Susuwatari has a unique rotation and orientation, creating diverse visual patterns when music plays. They also pulse in size to bass frequencies, creating a rhythmic breathing effect. Includes particle effects like smoke explosions and soot stains when they disappear.",
     "file": "index.html",
     "general": {
         "properties": {
@@ -36,12 +36,38 @@
                 "min": 1.0,
                 "max": 8.0,
                 "step": 0.1
+            },
+            "audio_intensity": {
+                "order": 500,
+                "text": "Audio Reactivity Intensity",
+                "type": "slider",
+                "value": 1.0,
+                "min": 0.0,
+                "max": 3.0,
+                "step": 0.1
+            },
+            "bass_pulse_intensity": {
+                "order": 600,
+                "text": "Bass Pulse Intensity",
+                "type": "slider",
+                "value": 1.0,
+                "min": 0.0,
+                "max": 3.0,
+                "step": 0.1
+            },
+            "audio_visualization_enabled": {
+                "order": 700,
+                "text": "Audio Visualization",
+                "type": "bool",
+                "value": true
             }
         }
     },
     "preview": "preview.gif",
+    "supportsaudioprocessing": true,
     "tags": [
         "Interactive",
+        "Audio Responsive",
         "Anime",
         "Studio Ghibli",
         "Particles",
