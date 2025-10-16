@@ -14,6 +14,7 @@ class SusuwatariCanvas {
         this.maxParticles = 100;
         this.particleSize = 18;
         this.fleeAcceleration = 4.0;
+        this.maxRunDistance = 300; // Maximum distance before getting tired (configurable)
 
         // Limits for manual interaction
         this.minSize = 10;
@@ -174,6 +175,10 @@ class SusuwatariCanvas {
         if (properties.audio_visualization_enabled) {
             this.audioVisualizationEnabled = properties.audio_visualization_enabled.value;
         }
+
+        if (properties.max_run_distance) {
+            this.maxRunDistance = properties.max_run_distance.value;
+        }
     }
 
     init() {
@@ -304,6 +309,17 @@ class SusuwatariCanvas {
             isFleeing: false,
             fleeStartTime: 0,
             wobbleOffset: Math.random() * Math.PI * 2,
+
+            // Continuous fleeing system
+            isTired: false,
+            tiredUntil: 0, // Time when tiredness ends
+            energy: 1.0, // Energy level (1.0 = full energy, 0.0 = exhausted)
+            maxRunTime: 3000 + Math.random() * 4000, // Can run for 3-7 seconds before getting tired
+            restTime: 2000 + Math.random() * 3000, // Rest for 2-5 seconds when tired
+            
+            // Distance tracking system
+            totalDistanceTraveled: 0, // Total distance traveled while fleeing
+            lastPosition: { x: posX, y: posY }, // Track previous position for distance calculation
 
             // Movement animation properties
             targetX: posX, // Initialize target to current position
@@ -566,33 +582,64 @@ class SusuwatariCanvas {
                 Math.pow(particle.y - this.mouseY, 2)
             );
 
-            // Always makes the Susuwatari run in the opposite direction from the mouse
-            if (distance < this.fleeDistance) {
+            // Only flee if not tired and within flee distance
+            if (distance < this.fleeDistance && !particle.isTired) {
                 this.makeParticleFlee(particle);
+            } else if (distance >= this.fleeDistance && particle.isFleeing && !particle.isTired) {
+                // Stop fleeing when mouse is far enough (but only if not tired)
+                particle.isFleeing = false;
             }
         });
     }
 
     makeParticleFlee(particle) {
-        // Only update if not fleeing or if it's a new direction
+        const currentTime = Date.now();
+
+        // Check if particle is tired and should rest
+        if (particle.isTired && currentTime < particle.tiredUntil) {
+            return; // Too tired to flee, ignore mouse
+        }
+
+        // If was tired but rest time is over, restore energy
+        if (particle.isTired && currentTime >= particle.tiredUntil) {
+            particle.isTired = false;
+            particle.energy = 1.0;
+            particle.fleeStartTime = currentTime; // Reset flee timer
+        }
+
+        // Start fleeing if not already fleeing
         if (!particle.isFleeing) {
             particle.isFleeing = true;
-            particle.fleeStartTime = Date.now();
-
-            const angle = Math.atan2(particle.y - this.mouseY, particle.x - this.mouseX);
-            const fleeDistance = 80 + Math.random() * 60; // Much larger distance: 80-140 pixels
-
-            const newX = particle.x + Math.cos(angle) * fleeDistance;
-            const newY = particle.y + Math.sin(angle) * fleeDistance;
-
-            // Set target position instead of immediately teleporting
-            particle.targetX = Math.max(particle.size / 2, Math.min(this.canvas.width - particle.size / 2, newX));
-            particle.targetY = Math.max(particle.size / 2, Math.min(this.canvas.height - particle.size / 2, newY));
-
-            setTimeout(() => {
-                particle.isFleeing = false;
-            }, 1200); // Optimized time for more agile response
+            particle.fleeStartTime = currentTime;
+            particle.totalDistanceTraveled = 0; // Reset distance when starting to flee
+            particle.lastPosition.x = particle.x;
+            particle.lastPosition.y = particle.y;
         }
+
+        // Check if particle has been running too long OR traveled too far and should get tired
+        const runningTime = currentTime - particle.fleeStartTime;
+        if ((runningTime > particle.maxRunTime || particle.totalDistanceTraveled > this.maxRunDistance) && !particle.isTired) {
+            particle.isTired = true;
+            particle.tiredUntil = currentTime + particle.restTime;
+            particle.isFleeing = false;
+            particle.energy = 0.0;
+            particle.totalDistanceTraveled = 0; // Reset distance when tired
+            return;
+        }
+
+        // Continue fleeing - constantly update flee direction
+        const angle = Math.atan2(particle.y - this.mouseY, particle.x - this.mouseX);
+        const fleeDistance = 60 + Math.random() * 40; // Smaller distance for continuous movement
+
+        const newX = particle.x + Math.cos(angle) * fleeDistance;
+        const newY = particle.y + Math.sin(angle) * fleeDistance;
+
+        // Set target position
+        particle.targetX = Math.max(particle.size / 2, Math.min(this.canvas.width - particle.size / 2, newX));
+        particle.targetY = Math.max(particle.size / 2, Math.min(this.canvas.height - particle.size / 2, newY));
+
+        // Update energy level based on running time
+        particle.energy = Math.max(0.2, 1.0 - (runningTime / particle.maxRunTime));
     }
 
     updateParticleMovement() {
@@ -610,6 +657,9 @@ class SusuwatariCanvas {
                 // Calculate velocity towards target with acceleration/deceleration
                 const baseSpeed = particle.isFleeing ? particle.fleeSpeed : particle.fleeSpeed * 0.15;
 
+                // Apply energy factor to speed (tired particles move slower)
+                const energyFactor = particle.isTired ? 0.3 : particle.energy; // Very slow when tired, proportional when running
+
                 // Acceleration: much faster movement when far from destination
                 const accelerationFactor = particle.isFleeing ?
                     Math.min(this.fleeAcceleration, 1 + distance * 0.04) : // Uses customizable property
@@ -620,7 +670,7 @@ class SusuwatariCanvas {
                     Math.max(0.3, distance / 15) : // More gradual deceleration
                     1.0;
 
-                const finalSpeed = baseSpeed * accelerationFactor * decelerationFactor;
+                const finalSpeed = baseSpeed * accelerationFactor * decelerationFactor * energyFactor;
 
                 particle.velocityX = deltaX * finalSpeed;
                 particle.velocityY = deltaY * finalSpeed;
@@ -635,8 +685,18 @@ class SusuwatariCanvas {
                 }
 
                 // Apply velocity to position
+                const oldX = particle.x;
+                const oldY = particle.y;
                 particle.x += particle.velocityX;
                 particle.y += particle.velocityY;
+                
+                // Track distance traveled if fleeing
+                if (particle.isFleeing) {
+                    const distanceMoved = Math.sqrt(
+                        Math.pow(particle.x - oldX, 2) + Math.pow(particle.y - oldY, 2)
+                    );
+                    particle.totalDistanceTraveled += distanceMoved;
+                }
             } else {
                 // Snap to target if very close
                 particle.x = particle.targetX;
@@ -815,8 +875,11 @@ class SusuwatariCanvas {
             const proximityEyeMultiplier = 1 + (proximityRatio * 0.6); // Up to 60% larger when mouse is very close
 
             // Olhos maiores baseado na proximidade do mouse (efeito de susto)
+            // Apply tiredness effect to eyes (tired = smaller, droopy eyes)
+            const tirednessMultiplier = particle.isTired ? 0.7 : (1.0 - (1.0 - particle.energy) * 0.3); // Eyes get smaller as energy decreases
+
             const baseEyeSize = size * 0.17;
-            const proximityEyeSize = baseEyeSize * proximityEyeMultiplier;
+            const proximityEyeSize = baseEyeSize * proximityEyeMultiplier * tirednessMultiplier;
             const eyeSize = proximityEyeSize * bassPulseMultiplier; // Apply bass pulse to eyes
             const eyePosition = size * 0.17;
 
@@ -939,7 +1002,10 @@ class SusuwatariCanvas {
     }
 
     updateUI() {
-        document.getElementById('count').textContent = this.particles.length;
+        const countElement = document.getElementById('count');
+        if (countElement) {
+            countElement.textContent = this.particles.length;
+        }
     }
 
     calculateFPS() {
@@ -950,7 +1016,10 @@ class SusuwatariCanvas {
             this.fps = this.frameCount;
             this.frameCount = 0;
             this.lastFrameTime = currentTime;
-            document.getElementById('fps').textContent = this.fps;
+            const fpsElement = document.getElementById('fps');
+            if (fpsElement) {
+                fpsElement.textContent = this.fps;
+            }
         }
     }
 

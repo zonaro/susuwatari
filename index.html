@@ -65,6 +65,15 @@
             "text": "Audio Visualization",
             "type": "bool",
             "value": true
+        },
+        "max_run_distance": {
+            "order": 800,
+            "text": "Max Run Distance Before Tired",
+            "type": "slider",
+            "value": 300,
+            "min": 100,
+            "max": 800,
+            "step": 10
         }
     }
     </script>
@@ -105,10 +114,6 @@
 
 <body>
     <canvas id="susuwatari-canvas"></canvas>
-    <div class="ui-info">
-        🎮 Scroll: Size | Click: Add/Remove | Right: Toggle UI<br>
-        💫 Susuwatari: <span id="count">0</span> | FPS: <span id="fps">0</span>
-    </div>
     <script src="susuwatari.js"></script>
 </body>
 

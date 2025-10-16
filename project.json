@@ -60,6 +60,15 @@
                 "text": "Audio Visualization",
                 "type": "bool",
                 "value": true
+            },
+            "max_run_distance": {
+                "order": 800,
+                "text": "Max Run Distance Before Tired",
+                "type": "slider",
+                "value": 300,
+                "min": 100,
+                "max": 800,
+                "step": 10
             }
         }
     },
