@@ -52,6 +52,10 @@ class SusuwatariCanvas {
         this.mouseHistory = []; // Track recent mouse positions
         this.maxMouseHistoryLength = 20; // Keep last 20 positions (increased from 10)
 
+        // Background customization properties
+        this.customBackgroundColor = null;
+        this.useSystemAccentColor = false;
+
         this.init();
     }
 
@@ -211,6 +215,140 @@ class SusuwatariCanvas {
         if (properties.rest_timeout) {
             this.restTimeout = properties.rest_timeout.value;
         }
+
+        // Background image property
+        if (properties.background_image) {
+            const imageValue = properties.background_image.value;
+            if (imageValue && imageValue.trim() !== '') {
+                // User has selected an image
+                const imageUrl = 'file:///' + imageValue;
+                document.body.style.backgroundImage = `url('${imageUrl}')`;
+                document.body.style.background = `url('${imageUrl}') center/cover no-repeat`;
+            } else {
+                // No image selected, remove background image
+                document.body.style.backgroundImage = '';
+                this.applyBackgroundColor();
+            }
+        }
+
+        // Background color property
+        if (properties.background_color) {
+            this.customBackgroundColor = properties.background_color.value;
+            // Only apply if no background image is set
+            if (!document.body.style.backgroundImage || document.body.style.backgroundImage === 'none' || document.body.style.backgroundImage === '') {
+                this.applyBackgroundColor();
+            }
+        }
+
+        // Use system accent color property
+        if (properties.use_system_accent_color) {
+            this.useSystemAccentColor = properties.use_system_accent_color.value;
+            // Only apply if no background image is set
+            if (!document.body.style.backgroundImage || document.body.style.backgroundImage === 'none' || document.body.style.backgroundImage === '') {
+                this.applyBackgroundColor();
+            }
+        }
+    }
+
+    // Helper method to apply background color
+    applyBackgroundColor() {
+        if (this.useSystemAccentColor) {
+            // Try to get system accent color
+            this.getSystemAccentColor().then(accentColor => {
+                if (accentColor) {
+                    document.body.style.background = `linear-gradient(135deg, ${accentColor}, ${this.darkenColor(accentColor, 0.3)}, ${this.darkenColor(accentColor, 0.6)})`;
+                } else {
+                    // Fallback to custom color if system accent is not available
+                    this.applyCustomBackgroundColor();
+                }
+            }).catch(() => {
+                // Fallback to custom color if system accent fails
+                this.applyCustomBackgroundColor();
+            });
+        } else {
+            this.applyCustomBackgroundColor();
+        }
+    }
+
+    // Apply custom background color
+    applyCustomBackgroundColor() {
+        if (this.customBackgroundColor) {
+            // Convert Wallpaper Engine color format (0.0-1.0) to CSS RGB (0-255)
+            const colorComponents = this.customBackgroundColor.split(' ');
+            const r = Math.ceil(parseFloat(colorComponents[0]) * 255);
+            const g = Math.ceil(parseFloat(colorComponents[1]) * 255);
+            const b = Math.ceil(parseFloat(colorComponents[2]) * 255);
+
+            const baseColor = `rgb(${r}, ${g}, ${b})`;
+            const darkerColor = `rgb(${Math.floor(r * 0.7)}, ${Math.floor(g * 0.7)}, ${Math.floor(b * 0.7)})`;
+            const darkestColor = `rgb(${Math.floor(r * 0.4)}, ${Math.floor(g * 0.4)}, ${Math.floor(b * 0.4)})`;
+
+            document.body.style.background = `linear-gradient(135deg, ${baseColor}, ${darkerColor}, ${darkestColor})`;
+        } else {
+            // Default gradient
+            document.body.style.background = 'linear-gradient(135deg, #1a1a2e, #16213e, #0f3460)';
+        }
+    }
+
+    // Get system accent color (Windows 10/11)
+    async getSystemAccentColor() {
+        try {
+            // Modern browsers: Try to use CSS system colors
+            if (CSS && CSS.supports) {
+                // Test AccentColor support (newer browsers)
+                if (CSS.supports('color', 'AccentColor')) {
+                    return 'AccentColor';
+                }
+
+                // Test Highlight color as fallback
+                if (CSS.supports('color', 'Highlight')) {
+                    return 'Highlight';
+                }
+            }
+
+            // Alternative approach: Create a test element with system styling
+            const testElement = document.createElement('input');
+            testElement.type = 'range';
+            testElement.style.position = 'absolute';
+            testElement.style.opacity = '0';
+            testElement.style.pointerEvents = 'none';
+            document.body.appendChild(testElement);
+
+            // Get computed styles
+            const computedStyle = window.getComputedStyle(testElement, '::-webkit-slider-thumb');
+            let accentColor = computedStyle.backgroundColor || computedStyle.color;
+
+            document.body.removeChild(testElement);
+
+            // Check if we got a meaningful color
+            if (accentColor &&
+                accentColor !== 'rgba(0, 0, 0, 0)' &&
+                accentColor !== 'transparent' &&
+                accentColor !== 'initial' &&
+                accentColor !== 'inherit') {
+                return accentColor;
+            }
+        } catch (error) {
+            console.log('Could not detect system accent color:', error);
+        }
+
+        return null;
+    }
+
+    // Helper function to darken a color
+    darkenColor(color, factor) {
+        if (color.startsWith('rgb(')) {
+            const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+            if (match) {
+                const r = Math.floor(parseInt(match[1]) * (1 - factor));
+                const g = Math.floor(parseInt(match[2]) * (1 - factor));
+                const b = Math.floor(parseInt(match[3]) * (1 - factor));
+                return `rgb(${r}, ${g}, ${b})`;
+            }
+        }
+
+        // Fallback for other color formats
+        return color;
     }
 
     init() {

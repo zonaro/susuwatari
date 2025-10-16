@@ -1,6 +1,6 @@
 {
     "contentrating": "Everyone",
-    "description": "Interactive Susuwatari (soot sprites) wallpaper inspired by Studio Ghibli films. These cute dust bunnies run away from your mouse cursor with realistic physics and leave soot trails behind. Features customizable size, count, flee distance, acceleration, and audio-reactive spikes that pulse and rotate to the beat of your music. Each Susuwatari has a unique rotation and orientation, creating diverse visual patterns when music plays. They also pulse in size to bass frequencies, creating a rhythmic breathing effect. When the mouse doesn't move for a configurable time, Susuwatari fall asleep with their eyes closed and animated 'ZZZ' floating above them. Move your mouse rapidly in circles around a Susuwatari to make it dizzy - it will show 'X' eyes and wobble around until it recovers! Includes particle effects like smoke explosions and soot stains when they disappear.",
+    "description": "Interactive Susuwatari (soot sprites) wallpaper inspired by Studio Ghibli films. These cute dust bunnies run away from your mouse cursor with realistic physics and leave soot trails behind. Features customizable size, count, flee distance, acceleration, and audio-reactive spikes that pulse and rotate to the beat of your music. Each Susuwatari has a unique rotation and orientation, creating diverse visual patterns when music plays. They also pulse in size to bass frequencies, creating a rhythmic breathing effect. When the mouse doesn't move for a configurable time, Susuwatari fall asleep with their eyes closed and animated 'ZZZ' floating above them. Move your mouse rapidly in circles around a Susuwatari to make it dizzy - it will show 'X' eyes and wobble around until it recovers! Includes particle effects like smoke explosions and soot stains when they disappear. NEW: Customize your background with your own images or choose custom colors, including the option to use your system's accent color for a personalized experience!",
     "file": "index.html",
     "general": {
         "properties": {
@@ -93,6 +93,25 @@
                 "min": 2,
                 "max": 15,
                 "step": 1
+            },
+            "background_image": {
+                "order": 1100,
+                "text": "Background Image",
+                "type": "file",
+                "value": "",
+                "fileType": "image"
+            },
+            "background_color": {
+                "order": 1200,
+                "text": "Background Color (when no image)",
+                "type": "color",
+                "value": "0.1 0.13 0.38"
+            },
+            "use_system_accent_color": {
+                "order": 1250,
+                "text": "Use System Accent Color as Background",
+                "type": "bool",
+                "value": false
             }
         }
     },
@@ -105,9 +124,13 @@
         "Studio Ghibli",
         "Particles",
         "Nature",
-        "Cute"
+        "Cute",
+        "Relaxing",
+        "Ghibli",
+        "Soot Sprites",
+        "Susuwatari"
     ],
     "title": "Susuwatari - Interactive Soot Sprites",
     "type": "web",
-    "version": 1
+    "version": 1.1
 }

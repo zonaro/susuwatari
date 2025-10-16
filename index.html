@@ -98,6 +98,25 @@
             "min": 2,
             "max": 15,
             "step": 1
+        },
+        "background_image": {
+            "order": 1100,
+            "text": "Background Image",
+            "type": "file",
+            "value": "",
+            "fileType": "image"
+        },
+        "background_color": {
+            "order": 1200,
+            "text": "Background Color (when no image)",
+            "type": "color",
+            "value": "0.1 0.13 0.38"
+        },
+        "use_system_accent_color": {
+            "order": 1250,
+            "text": "Use System Accent Color as Background",
+            "type": "bool",
+            "value": false
         }
     }
     </script>
@@ -108,11 +127,15 @@
             padding: 0;
             overflow: hidden;
             background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
             height: 100vh;
             user-select: none;
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
+            transition: background 0.3s ease;
         }
 
         #susuwatari-canvas {

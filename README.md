@@ -30,6 +30,12 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 - **Smoke Explosion**: When disappearing, explode into smoke particles
 - **Permanent Stains**: Leave soot stains for 10 seconds where they disappeared
 
+### Background Customization
+- **Custom Background Images**: Upload your own wallpaper images to personalize the experience
+- **Custom Color Themes**: Choose custom background colors when no image is set
+- **System Integration**: Option to use your Windows system accent color for seamless theme integration
+- **Gradient Effects**: All color backgrounds are applied with gradient effects for visual depth
+
 ### Customizable Properties (Wallpaper Engine)
 
 #### Initial Susuwatari Size
@@ -73,6 +79,21 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 - **Default**: On
 - **Description**: Master toggle to enable or disable all audio visualization effects. When turned off, completely disables spike reactivity, bass pulsing, and audio-reactive rotation, returning to a purely static visual experience.
 
+#### Background Image
+- **Type**: File Selector (Image)
+- **Default**: None
+- **Description**: Upload a custom background image for your wallpaper. Supports common image formats (JPEG, PNG, BMP, GIF, SVG, WebP). When an image is selected, it will be displayed as the background with cover scaling and center positioning.
+
+#### Background Color (when no image)
+- **Type**: Color Picker
+- **Default**: Deep Blue Gradient (0.1 0.13 0.38)
+- **Description**: Choose a custom background color that will be used when no background image is set. The color will be applied as a gradient from light to dark for visual depth.
+
+#### Use System Accent Color as Background
+- **Type**: Toggle (On/Off)
+- **Default**: Off
+- **Description**: When enabled and no background image is set, uses your system's accent color as the background instead of the custom color. Creates a gradient effect that matches your Windows theme for a personalized experience.
+
 ## Wallpaper Engine Installation
 
 1. Copy all files to a folder
@@ -89,6 +110,13 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 🖱️ Left Click: Add (empty area) / Remove (on Susuwatari)
 🖱️ Right Click: Show/hide UI information
 ```
+
+## Background Customization Tips
+
+- **For best results with custom images**: Use high-resolution images that look good with moving particles
+- **Color combinations**: Choose darker colors or images to ensure Susuwatari remain visible
+- **System accent color**: Perfect for matching your desktop theme across all applications
+- **Image formats supported**: JPEG, PNG, BMP, GIF, SVG, WebP
 
 ## Project Structure
 
