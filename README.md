@@ -2,7 +2,8 @@
 
 An interactive implementation of the famous Susuwatari (soot sprites) from Studio Ghibli films, especially "Spirited Away" and "My Neighbor Totoro", optimized for Wallpaper Engine with audio-reactive features.
 
-## [Install from Steam Workshop]([url](https://steamcommunity.com/sharedfiles/filedetails/?id=3587855531))
+## Install from Steam Workshop
+[Open Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3587855531)
 
 
 
