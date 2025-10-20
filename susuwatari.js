@@ -1990,12 +1990,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-// Alternative function for compatibility
-if (typeof window.wallpaperRegisterAudioListener === 'undefined') {
-    window.wallpaperRegisterAudioListener = function () {
-        console.log('wallpaperRegisterAudioListener not available - running in compatibility mode');
-    };
-}
+
 
 // Browser Audio Functions using Web Audio API
 let browserAudioContext = null;
