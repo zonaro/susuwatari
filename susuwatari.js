@@ -1931,11 +1931,6 @@ function livelyPropertyListener(name, val) {
 
 
 
-function livelyAudioListener(audioArray) {
-    if (susuwatariInstance) {
-        susuwatariInstance.wallpaperAudioListener(audioArray);
-    }
-}
 
 // Initialize the wallpaper
 document.addEventListener('DOMContentLoaded', function () {
@@ -1963,6 +1958,33 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (e) {
             console.warn('Failed to register Wallpaper Engine audio listener:', e);
         }
+    } else if (isLivelyWallpaper) {
+        window.livelyAudioListener = function (audioArray) {
+            if (susuwatariInstance) {
+                susuwatariInstance.wallpaperAudioListener(audioArray);
+            }
+        }
+        // Load default properties for Lively Wallpaper
+        const defaultProperties = {
+            'susuwatariSize': 18,
+            'susuwatariCount': 100,
+            'fleeDistance': 80,
+            'fleeAcceleration': 4.0,
+            'audioIntensity': 1.0,
+            'bassPulseIntensity': 1.0,
+            'audioVisualizationEnabled': true,
+            'maxRunDistance': 300,
+            'sleepTime': 10,
+            'sleepEnabled': true,
+            'restTimeout': 5,
+            'backgroundImageUrl': ''
+        };
+
+        // Apply each default property
+        Object.keys(defaultProperties).forEach(key => {
+            livelyPropertyListener(key, defaultProperties[key]);
+        });
+
     } else {
         console.log('Running in standard web browser mode');
         // Initialize browser mode with settings panel
@@ -1980,29 +2002,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // Initialize Lively properties on load
-        if (isLivelyWallpaper && typeof livelyPropertyListener === 'function') {
-            // Load default properties for Lively Wallpaper
-            const defaultProperties = {
-                'susuwatariSize': 18,
-                'susuwatariCount': 100,
-                'fleeDistance': 80,
-                'fleeAcceleration': 4.0,
-                'audioIntensity': 1.0,
-                'bassPulseIntensity': 1.0,
-                'audioVisualizationEnabled': true,
-                'maxRunDistance': 300,
-                'sleepTime': 10,
-                'sleepEnabled': true,
-                'restTimeout': 5,
-                'backgroundImageUrl': ''
-            };
 
-            // Apply each default property
-            Object.keys(defaultProperties).forEach(key => {
-                livelyPropertyListener(key, defaultProperties[key]);
-            });
-        }
     }
 });
 
@@ -2269,7 +2269,7 @@ function initializeBrowserMode() {
             applyBrowserSettings(event.data.settings);
         }
     });
-    showBrowserOverlayIfNeeded();
+
 }
 
 function loadBrowserSettings() {
