@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Download Susuwatari Interactive Wallpaper</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- JSZip CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            margin-bottom: 30px;
+            opacity: 0.8;
+            font-size: 1.1em;
+        }
+
+        .download-section {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .download-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+            background: linear-gradient(45deg, #ff5252, #ff7979);
+        }
+
+        .wallpaper-engine-btn {
+            background: linear-gradient(45deg, #4a90e2, #5ba3f5);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px;
+        }
+
+        .wallpaper-engine-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(74, 144, 226, 0.4);
+            background: linear-gradient(45deg, #357abd, #4a90e2);
+            text-decoration: none;
+            color: white;
+        }
+
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .divider {
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
+            margin: 30px 0;
+        }
+
+        .file-list {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-name {
+            font-weight: bold;
+        }
+
+        .file-desc {
+            opacity: 0.7;
+            font-size: 0.9em;
+        }
+
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            white-space: pre-wrap;
+            min-height: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid #ff6b6b;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Susuwatari</h1>
+        <center>
+
+            <img src="preview.gif" alt="Preview" style="max-width: 100%; border-radius: 10px;">
+        </center>
+        <p class="subtitle">Interactive Wallpaper for Lively Wallpaper & Wallpaper Engine</p>
+
+        <div class="download-section">
+            <p>Choose your preferred platform to use Susuwatari:</p>
+
+
+            <div class="button-container">
+                <button id="downloadBtn" class="download-btn">📦 Download Susuwatari.zip - Lively Wallpaper</button>
+
+
+                <a href="steam://url/CommunityFilePage/3334108330" class="wallpaper-engine-btn">
+                    🎮 Steam Workshop - Wallpaper Engine
+                </a>
+
+            </div>
+        </div>
+
+        <div id="status"></div>
+
+        <div class="instructions">
+            <h3>🎮 How to install via Wallpaper Engine (Steam Workshop):</h3>
+            <ol>
+                <li>Have <strong>Wallpaper Engine</strong> installed on Steam</li>
+                <li>Click the <strong>"🎮 Steam Workshop"</strong> button above</li>
+                <li>Click <strong>"Subscribe"</strong> on the Workshop page</li>
+                <li>Open Wallpaper Engine</li>
+                <li>Go to the <strong>"Workshop"</strong> tab</li>
+                <li>Find Susuwatari in <strong>"Subscribed"</strong> and activate it</li>
+                <li>Configure the properties as desired</li>
+                <li>Enjoy your interactive Susuwatari! 🎉</li>
+            </ol>
+        </div>
+
+        <div class="instructions">
+            <h3>📋 How to install on Lively Wallpaper:</h3>
+            <ol>
+                <li>Download the <strong>Susuwatari.zip</strong> file by clicking the button above</li>
+                <li>Open Lively Wallpaper</li>
+                <li>Click "Add Wallpaper" or "+"</li>
+                <li>Navigate to the folder where you downloaded the file and select <strong>Susuwatari.zip</strong></li>
+                <li>Configure the properties as desired</li>
+                <li>Enjoy your interactive Susuwatari! 🎉</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const btn = document.getElementById('downloadBtn');
+
+        function addLine(msg) {
+            statusEl.textContent += msg + '\n';
+        }
+
+        async function fetchLocalFile(filename) {
+            try {
+                const response = await fetch(filename);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status} for ${filename}`);
+                }
+                return await response.arrayBuffer();
+            } catch (error) {
+                throw new Error(`Error loading ${filename}: ${error.message}`);
+            }
+        }
+
+        btn.addEventListener('click', async () => {
+            statusEl.textContent = '';
+            addLine('🚀 Starting Susuwatari files download...\n');
+
+            const files = [
+                { name: 'LivelyInfo.json', desc: 'Lively Wallpaper metadata' },
+                { name: 'LivelyProperties.json', desc: 'Configurable properties' },
+                { name: 'index.html', desc: 'Main interface' },
+                { name: 'susuwatari.js', desc: 'Animation engine' }
+            ];
+
+            const zip = new JSZip();
+            let success = 0;
+
+            // Disable button during download
+            btn.disabled = true;
+            btn.textContent = '⏳ Preparing download...';
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                addLine(`📁 Loading [${i + 1}/${files.length}]: ${file.name}`);
+
+                try {
+                    const buffer = await fetchLocalFile(file.name);
+                    zip.file(file.name, new Uint8Array(buffer));
+                    addLine(`✅ Added: ${file.name} - ${file.desc}`);
+                    success++;
+                } catch (err) {
+                    addLine(`❌ Error: ${file.name} - ${err.message}`);
+                }
+            }
+
+            if (success === 0) {
+                addLine('\n❌ No files were added. Please check if the files are in the correct directory.');
+                btn.disabled = false;
+                btn.textContent = '📦 Download Susuwatari.zip';
+                return;
+            }
+
+            addLine('\n📦 Creating ZIP file...');
+
+            try {
+                const blob = await zip.generateAsync({
+                    type: 'blob',
+                    compression: 'DEFLATE',
+                    compressionOptions: { level: 6 }
+                });
+
+                const a = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                a.href = url;
+                a.download = 'Susuwatari.zip';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+
+                addLine(`\n🎉 Download started: ${a.download}`);
+                addLine(`📊 Total files: ${success}/${files.length}`);
+                addLine('\n✨ Ready! Now you can install Susuwatari on Lively Wallpaper!');
+            } catch (err) {
+                addLine(`\n❌ Error creating ZIP: ${err.message}`);
+            }
+
+            // Re-enable button
+            btn.disabled = false;
+            btn.textContent = '📦 Download Susuwatari.zip';
+        });
+    </script>
+</body>
+
+</html>
