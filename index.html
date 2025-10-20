@@ -40,11 +40,130 @@
             display: block;
             cursor: default;
         }
+
+        /* Browser mode download overlay */
+        #browser-download-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        #browser-download-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            color: white;
+        }
+
+        #browser-download-container h2 {
+            font-size: 2.2em;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        #browser-download-container p {
+            font-size: 1.1em;
+            margin-bottom: 25px;
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+
+        .download-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .download-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            text-decoration: none;
+            display: block;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+            background: linear-gradient(45deg, #ff5252, #ff7979);
+        }
+
+        .wallpaper-engine-btn {
+            background: linear-gradient(45deg, #4a90e2, #5ba3f5);
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
+        }
+
+        .wallpaper-engine-btn:hover {
+            box-shadow: 0 6px 20px rgba(74, 144, 226, 0.4);
+            background: linear-gradient(45deg, #357abd, #4a90e2);
+        }
+
+        .continue-btn {
+            background: transparent;
+            color: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            font-size: 0.9em;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+
+        .continue-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-color: rgba(255, 255, 255, 0.5);
+        }
     </style>
 </head>
 
 <body>
+    <!-- Browser mode download overlay -->
+    <div id="browser-download-overlay">
+        <div id="browser-download-container">
+            <h2>🌫️ Susuwatari</h2>
+            <p>Interactive wallpaper with adorable soot sprites that react to your mouse and audio!</p>
+
+            <div class="download-buttons">
+                <a href="steam://url/CommunityFilePage/3334108330" class="download-btn wallpaper-engine-btn">
+                    🎮 Steam Workshop - Wallpaper Engine
+                </a>
+                <a href="download.html" class="download-btn" target="_blank">
+                    📦 Download for Lively Wallpaper
+                </a>
+            </div>
+
+            <button class="continue-btn" onclick="hideBrowserOverlay()">
+                Continue to Preview Mode
+            </button>
+        </div>
+    </div>
+
     <canvas id="susuwatari-canvas"></canvas>
+
     <script src="susuwatari.js"></script>
 </body>
 

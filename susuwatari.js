@@ -1947,9 +1947,12 @@ document.addEventListener('DOMContentLoaded', function () {
         typeof window.livelyAudioListener !== 'undefined' ||
         document.querySelector('script[src*="lively"]') !== null;
 
+    const isBrowserMode = !isWallpaperEngine && !isLivelyWallpaper;
+
     console.log('Wallpaper Engine Detection:');
     console.log('- Wallpaper Engine:', isWallpaperEngine);
     console.log('- Lively Wallpaper:', isLivelyWallpaper);
+    console.log('- Browser Mode:', isBrowserMode);
 
     // Initialize audio for the detected engine
     if (isWallpaperEngine) {
@@ -1966,30 +1969,40 @@ document.addEventListener('DOMContentLoaded', function () {
         initializeBrowserMode();
         // Initialize Web Audio API for browser mode
         initializeBrowserAudio();
-    }
 
-    // Initialize Lively properties on load
-    if (isLivelyWallpaper && typeof livelyPropertyListener === 'function') {
-        // Load default properties for Lively Wallpaper
-        const defaultProperties = {
-            'susuwatariSize': 18,
-            'susuwatariCount': 100,
-            'fleeDistance': 80,
-            'fleeAcceleration': 4.0,
-            'audioIntensity': 1.0,
-            'bassPulseIntensity': 1.0,
-            'audioVisualizationEnabled': true,
-            'maxRunDistance': 300,
-            'sleepTime': 10,
-            'sleepEnabled': true,
-            'restTimeout': 5,
-            'backgroundImageUrl': ''
-        };
+        const overlay = document.getElementById('browser-download-overlay');
+        if (overlay) {
+            if (isBrowserMode) {
+                overlay.style.display = 'flex';
+            } else {
+                // Remove the overlay completely from DOM if in wallpaper mode
+                overlay.remove();
+            }
+        }
 
-        // Apply each default property
-        Object.keys(defaultProperties).forEach(key => {
-            livelyPropertyListener(key, defaultProperties[key]);
-        });
+        // Initialize Lively properties on load
+        if (isLivelyWallpaper && typeof livelyPropertyListener === 'function') {
+            // Load default properties for Lively Wallpaper
+            const defaultProperties = {
+                'susuwatariSize': 18,
+                'susuwatariCount': 100,
+                'fleeDistance': 80,
+                'fleeAcceleration': 4.0,
+                'audioIntensity': 1.0,
+                'bassPulseIntensity': 1.0,
+                'audioVisualizationEnabled': true,
+                'maxRunDistance': 300,
+                'sleepTime': 10,
+                'sleepEnabled': true,
+                'restTimeout': 5,
+                'backgroundImageUrl': ''
+            };
+
+            // Apply each default property
+            Object.keys(defaultProperties).forEach(key => {
+                livelyPropertyListener(key, defaultProperties[key]);
+            });
+        }
     }
 });
 
@@ -2256,6 +2269,7 @@ function initializeBrowserMode() {
             applyBrowserSettings(event.data.settings);
         }
     });
+    showBrowserOverlayIfNeeded();
 }
 
 function loadBrowserSettings() {
@@ -2441,6 +2455,10 @@ window.cleanupBrowserAudio = cleanupBrowserAudio;
 Object.defineProperty(window, 'browserAudioInitialized', {
     get: function () { return browserAudioInitialized; }
 });
+
+
+
+
 
 // Exportar para compatibilidade
 if (typeof module !== 'undefined' && module.exports) {
