@@ -223,8 +223,28 @@ class SusuwatariCanvas {
         }
 
         // Background image property (supports both Wallpaper Engine file paths and Lively Wallpaper URLs/paths)
-        if (properties.background_image) {
-            const imageValue = properties.background_image.value;
+        if (properties.background_image || properties.background_image_picker) {
+            let imageValue = '';
+
+            // Check if user used the file picker
+            if (properties.background_image_picker && properties.background_image_picker.value && properties.background_image_picker.value.trim() !== '') {
+                imageValue = properties.background_image_picker.value;
+
+                // Update the text input field with the selected file path (for Wallpaper Engine sync)
+                if (typeof window.wallpaperPropertyListener !== 'undefined') {
+                    // Set the text input to match the file picker selection
+                    setTimeout(() => {
+                        window.wallpaperPropertyListener.applyUserProperties({
+                            background_image: { value: imageValue }
+                        });
+                    }, 100);
+                }
+            }
+            // Otherwise use the text input value
+            else if (properties.background_image && properties.background_image.value && properties.background_image.value.trim() !== '') {
+                imageValue = properties.background_image.value;
+            }
+
             if (imageValue && imageValue.trim() !== '') {
                 let imageUrl;
 

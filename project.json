@@ -114,7 +114,13 @@
             },
             "background_image": {
                 "order": 1100,
-                "text": "Background Image",
+                "text": "Background Image (URL or File Path)",
+                "type": "textinput",
+                "value": ""
+            },
+            "background_image_picker": {
+                "order": 1110,
+                "text": "Browse for Local Image File",
                 "type": "file",
                 "value": "",
                 "fileType": "image"

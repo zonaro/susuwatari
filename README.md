@@ -2,22 +2,6 @@
 
 An interactive implementation of the famous Susuwatari (soot sprites) from Studio Ghibli films, especially "Spirited Away" and "My Neighbor Totoro", compatible with both **Wallpaper Engine** and **Lively Wallpaper** with audio-reactive features.
 
-## Installation
-
-### Wallpaper Engine (Steam)
-[Install from Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3587855531)
-
-### Lively Wallpaper (Free)
-1. Download or clone this repository
-2. Copy the project folder to your Lively Wallpaper directory
-3. Import the wallpaper through Lively Wallpaper's interface
-4. Customize properties through the right-click context menu
-
-## Compatibility
-✅ **Wallpaper Engine** - Full compatibility with project.json properties  
-✅ **Lively Wallpaper** - Full compatibility with LivelyProperties.json  
-✅ **Web Browsers** - Complete settings panel with popup interface and localStorage persistence
-
 
 
 ## Features
@@ -119,12 +103,7 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 - **Default**: 5 seconds
 - **Description**: Time Susuwatari rest when they become dizzy from rapid mouse movement
 
-#### Background Image *(Wallpaper Engine)*
-- **Type**: File Selector (Image)
-- **Default**: None
-- **Description**: Upload a custom background image for your wallpaper. Supports common image formats (JPEG, PNG, BMP, GIF, SVG, WebP). When an image is selected, it will be displayed as the background with cover scaling and center positioning. When no image is set, uses the default blue gradient.
-
-#### Background Image URL/Path *(Lively Wallpaper)*
+#### Background Image URL/Path 
 - **Type**: Text Input
 - **Default**: Empty
 - **Description**: Enter a URL or local file path to a background image. Supports web URLs (https://example.com/image.jpg) and local file paths (C:\path\to\image.png). Uses the same image formats and scaling as Wallpaper Engine. When empty, uses the default blue gradient.
@@ -134,14 +113,11 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 ### Wallpaper Engine (Steam)
 1. Subscribe to the wallpaper on [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3587855531)
 2. Apply the wallpaper from Wallpaper Engine's interface
-3. Right-click → Customize to access properties
 
 ### Lively Wallpaper (Free Alternative)
-1. Download this project as ZIP or clone the repository
-2. Extract to a folder
-3. Open Lively Wallpaper
-4. Click "Add Wallpaper" → "Browse" → Select the project folder
-5. Right-click the wallpaper → Customize to access properties
+1. [Download](https://github.com/zonaro/susuwatari/archive/refs/heads/main.zip)
+2. Open Lively Wallpaper
+3. Click "Add Wallpaper" → "Browse" → Select the .zip file
 
 ### Web Browser (Any Modern Browser)
 1. Navigate to http://zonaro.github.io/susuwatari
@@ -157,39 +133,12 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 - 🌐 **Universal Compatibility**: Works in all modern web browsers
 - 📱 **Responsive Interface**: Settings panel adapts to different screen sizes
 - ⚡ **Real-time Controls**: Audio enable/disable with instant visual feedback
-
- 
-## Technical Implementation
-
-### Triple Compatibility System
-The wallpaper automatically detects which platform is running:
-- **Wallpaper Engine**: Uses `wallpaperPropertyListener` and `wallpaperRegisterAudioListener`
-- **Lively Wallpaper**: Uses `livelyPropertyListener` and `livelyAudioListener`
-- **Web Browser**: Uses popup settings panel with `localStorage` persistence and `postMessage` communication
-
-### Audio Processing
-- **Wallpaper Engine**: Real-time system audio analysis via `wallpaperRegisterAudioListener`
-- **Lively Wallpaper**: Audio stream processing through `livelyAudioListener`
-- **Web Browsers**: Microphone input via Web Audio API with user permission
-- Real-time audio spectrum analysis (128 data points)
-- Separate bass frequency isolation for eye pulsing effects
-- Smoothed audio data to prevent erratic movement
-- Full left/right channel utilization
-- Customizable intensity multipliers
-- Privacy-focused: browser audio processing stays completely local
-
-### Performance Optimization
-- HTML5 Canvas 2D rendering with hardware acceleration
-- Efficient particle system with automatic cleanup
-- Memory management for off-screen particles
-- Optimized for 60+ FPS performance
-- Audio processing at ~30 Hz to balance responsiveness and performance
+  
 
 ## Interaction Controls
 
 ### Universal Controls (All Platforms):
 ```
-🎮 Scroll: Adjust Susuwatari size
 🖱️ Left Click: Add (empty area) / Remove (on Susuwatari)
 ```
 
@@ -201,6 +150,7 @@ Access settings through wallpaper software
 
 **Web Browser Mode:**
 ```
+🎮 Scroll: Adjust Susuwatari size
 🖱️ Right Click: Open settings panel popup
 ⌨️ Ctrl+Shift+S: Open settings panel popup (keyboard shortcut)
 🎵 Audio Setup: Click "Enable Audio Reactivity" button when prompted
@@ -215,12 +165,26 @@ Access settings through wallpaper software
 
 **Note**: Browser audio uses your microphone for reactivity. All processing happens locally - no audio data leaves your browser.
 
-## Background Customization Tips *(Wallpaper Engine only)*
+## Background Customization
 
-- **For best results with custom images**: Use high-resolution images that look good with moving particles
-- **Light backgrounds recommended**: Choose lighter images to ensure Susuwatari remain visible
-- **Image formats supported**: JPEG, PNG, BMP, GIF, SVG, WebP
-- **Default gradient**: Beautiful blue gradient is used when no custom image is selected
+### Wallpaper Engine:
+- **Text Input Field**: Enter any URL (http://, https://) or local file path directly
+- **Browse Button**: Use the file picker to select local images (automatically fills the text field)
+- **Dual Options**: Both methods work together - file picker updates the text field for easy editing
+
+### Lively Wallpaper:
+- **URL/Path Input**: Enter image URLs or local file paths in the background image field
+
+### All Platforms:
+- **Supported Formats**: JPEG, PNG, BMP, GIF, SVG, WebP
+- **URL Support**: Direct links to online images (https://example.com/image.jpg)
+- **Local Files**: Full file paths (C:\path\to\image.jpg or /path/to/image.jpg)
+- **Default Gradient**: Beautiful blue gradient when no image is specified
+
+### Tips:
+- **High-resolution recommended**: Images look better with moving particles
+- **Dark backgrounds preferred**: Ensure Susuwatari remain visible against the background
+- **Online images**: Must be accessible via direct URL (some sites block hotlinking)
 
 ## Technologies Used
 
