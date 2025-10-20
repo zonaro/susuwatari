@@ -115,7 +115,7 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 2. Apply the wallpaper from Wallpaper Engine's interface
 
 ### Lively Wallpaper (Free Alternative)
-1. [Download](https://github.com/zonaro/susuwatari/archive/refs/heads/main.zip)
+1. [Download](https://zonaro.github.io/download)
 2. Open Lively Wallpaper
 3. Click "Add Wallpaper" → "Browse" → Select the .zip file
 
