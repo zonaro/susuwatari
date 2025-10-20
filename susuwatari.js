@@ -72,9 +72,14 @@ class SusuwatariCanvas {
     }
 
     // Get bass-reactive size multiplier for eye pulsing effect
-    getBassPulseMultiplier() {
+    getBassPulseMultiplier(particle = null) {
         // Return 1.0 (no effect) if audio visualization is disabled
         if (!this.audioVisualizationEnabled) {
+            return 1.0;
+        }
+
+        // Dizzy Susuwatari don't react to audio
+        if (particle && particle.isDizzy) {
             return 1.0;
         }
 
@@ -100,9 +105,14 @@ class SusuwatariCanvas {
 
         return multiplier;
     }    // Get audio-reactive spike multiplier for a specific spike index
-    getAudioSpikeMultiplier(spikeIndex, totalSpikes) {
+    getAudioSpikeMultiplier(spikeIndex, totalSpikes, particle = null) {
         // Return 1.0 (no effect) if audio visualization is disabled
         if (!this.audioVisualizationEnabled) {
+            return 1.0;
+        }
+
+        // Dizzy Susuwatari don't react to audio
+        if (particle && particle.isDizzy) {
             return 1.0;
         }
 
@@ -1048,12 +1058,26 @@ class SusuwatariCanvas {
 
         // Update dizziness system
         this.particles.forEach(particle => {
-            if (particle.isDizzy && currentTime > particle.dizzyUntil) {
-                // Recovery from dizziness
-                particle.isDizzy = false;
-                particle.dizzinessLevel = 0;
-                particle.isTired = false;
-                particle.energy = 1.0;
+            if (particle.isDizzy) {
+                // Update spiral rotation for dizzy particles
+                if (particle.spiralRotation !== undefined && particle.spiralRotationSpeed !== undefined) {
+                    particle.spiralRotation += particle.spiralRotationSpeed;
+                    // Keep rotation within 0-2π range
+                    if (particle.spiralRotation > Math.PI * 2) {
+                        particle.spiralRotation -= Math.PI * 2;
+                    }
+                }
+
+                // Check for recovery from dizziness
+                if (currentTime > particle.dizzyUntil) {
+                    // Recovery from dizziness
+                    particle.isDizzy = false;
+                    particle.dizzinessLevel = 0;
+                    particle.isTired = false;
+                    particle.energy = 1.0;
+                    particle.spiralRotation = undefined; // Clear spiral rotation
+                    particle.spiralRotationSpeed = undefined;
+                }
             }
         });
 
@@ -1248,9 +1272,9 @@ class SusuwatariCanvas {
                 this.ctx.shadowColor = collectible.color;
                 this.ctx.shadowBlur = 8;
 
-                // 5-pointed star with rounded points
+                // 6-pointed star with rounded points
                 this.ctx.beginPath();
-                const spikes = 5;
+                const spikes = 6;
                 const outerRadius = size;
                 const innerRadius = size * 0.4;
                 const cornerRadius = size * 0.15; // Radius for rounded corners
@@ -1387,6 +1411,8 @@ class SusuwatariCanvas {
         particle.isFleeing = false; // Stop fleeing
         particle.energy = 0.2; // Low energy while dizzy
         particle.lastDizzyTime = currentTime; // Record when this particle was made dizzy
+        particle.spiralRotation = 0; // Initialize spiral rotation
+        particle.spiralRotationSpeed = 0.05 + Math.random() * 0.1; // Random rotation speed (0.05-0.15)
     }
 
     removeNearestParticle(mouseX, mouseY) {
@@ -1418,6 +1444,16 @@ class SusuwatariCanvas {
             const eyeSize = particle.size * 0.17;
 
             let targetX, targetY;
+
+            // Dizzy Susuwatari eyes in X shape look straight ahead (no tracking)
+            if (particle.isDizzy) {
+                // Eyes look straight ahead when dizzy - no pupil movement
+                particle.leftPupilX = 0;
+                particle.leftPupilY = 0;
+                particle.rightPupilX = 0;
+                particle.rightPupilY = 0;
+                return;
+            }
 
             // Determine what the Susuwatari should look at
             if (particle.isSeekingCollectible && particle.targetCollectible) {
@@ -1465,6 +1501,33 @@ class SusuwatariCanvas {
         });
     }
 
+    drawSpiral(centerX, centerY, size, dizzinessLevel, rotation = 0) {
+        this.ctx.beginPath();
+
+        // Spiral parameters
+        const turns = 2.5 + dizzinessLevel; // Number of turns (more dizzy = more turns)
+        const maxRadius = size / 2;
+        const steps = 50; // Number of steps to draw the spiral
+
+        // Start from center and spiral outward
+        for (let i = 0; i <= steps; i++) {
+            const progress = i / steps;
+            const angle = progress * turns * Math.PI * 2 + rotation; // Add rotation
+            const radius = progress * maxRadius;
+
+            const x = centerX + Math.cos(angle) * radius;
+            const y = centerY + Math.sin(angle) * radius;
+
+            if (i === 0) {
+                this.ctx.moveTo(x, y);
+            } else {
+                this.ctx.lineTo(x, y);
+            }
+        }
+
+        this.ctx.stroke();
+    }
+
     drawSusuwatari(particle) {
         const x = particle.x;
         const y = particle.y;
@@ -1492,7 +1555,7 @@ class SusuwatariCanvas {
             let radiusMultiplier = particle.spikePattern[i];
 
             // Apply audio-reactive effect to spike length
-            const audioMultiplier = this.getAudioSpikeMultiplier(i, particle.spikeCount);
+            const audioMultiplier = this.getAudioSpikeMultiplier(i, particle.spikeCount, particle);
             radiusMultiplier *= audioMultiplier;
 
             const currentRadius = radius * radiusMultiplier;
@@ -1544,7 +1607,7 @@ class SusuwatariCanvas {
         // Draw eyes (skip if sleeping and sleep is enabled)
         if (particle.eyeOpacity > 0 && !(this.sleepEnabled && particle.isSleeping)) {
             // Apply bass pulse effect to eye size only
-            const bassPulseMultiplier = this.getBassPulseMultiplier();
+            const bassPulseMultiplier = this.getBassPulseMultiplier(particle);
 
             // Calculate mouse proximity for eye dilation effect
             const mouseDistance = Math.sqrt(
@@ -1559,7 +1622,12 @@ class SusuwatariCanvas {
 
             // Olhos maiores baseado na proximidade do mouse (efeito de susto)
             // Apply tiredness effect to eyes (tired = smaller, droopy eyes)
-            const tirednessMultiplier = particle.isTired ? 0.7 : (1.0 - (1.0 - particle.energy) * 0.3); // Eyes get smaller as energy decreases
+            let tirednessMultiplier = particle.isTired ? 0.7 : (1.0 - (1.0 - particle.energy) * 0.3); // Eyes get smaller as energy decreases
+
+            // Dizzy Susuwatari have bigger eyes (dazed/confused look)
+            if (particle.isDizzy) {
+                tirednessMultiplier = 1.4; // 40% bigger eyes when dizzy
+            }
 
             const baseEyeSize = size * 0.17;
             const proximityEyeSize = baseEyeSize * proximityEyeMultiplier * tirednessMultiplier;
@@ -1610,32 +1678,19 @@ class SusuwatariCanvas {
 
             // Render pupils or dizziness effect
             if (particle.isDizzy) {
-                // Draw X's instead of normal pupils when dizzy
+                // Draw spirals instead of X's when dizzy
                 this.ctx.strokeStyle = '#000000';
-                this.ctx.lineWidth = pupilSize * 0.15;
+                this.ctx.lineWidth = pupilSize * 0.1;
 
-                // Left eye X
+                // Left eye spiral
                 const leftPupilCenterX = leftEyeX + particle.leftPupilX;
                 const leftPupilCenterY = leftEyeY + particle.leftPupilY;
-                const xSize = pupilSize * 0.6;
+                this.drawSpiral(leftPupilCenterX, leftPupilCenterY, eyeSize * 0.9, particle.dizzinessLevel, particle.spiralRotation || 0);
 
-                this.ctx.beginPath();
-                this.ctx.moveTo(leftPupilCenterX - xSize / 2, leftPupilCenterY - xSize / 2);
-                this.ctx.lineTo(leftPupilCenterX + xSize / 2, leftPupilCenterY + xSize / 2);
-                this.ctx.moveTo(leftPupilCenterX + xSize / 2, leftPupilCenterY - xSize / 2);
-                this.ctx.lineTo(leftPupilCenterX - xSize / 2, leftPupilCenterY + xSize / 2);
-                this.ctx.stroke();
-
-                // Right eye X
+                // Right eye spiral (rotate in opposite direction for more chaotic effect)
                 const rightPupilCenterX = rightEyeX + particle.rightPupilX;
                 const rightPupilCenterY = rightEyeY + particle.rightPupilY;
-
-                this.ctx.beginPath();
-                this.ctx.moveTo(rightPupilCenterX - xSize / 2, rightPupilCenterY - xSize / 2);
-                this.ctx.lineTo(rightPupilCenterX + xSize / 2, rightPupilCenterY + xSize / 2);
-                this.ctx.moveTo(rightPupilCenterX + xSize / 2, rightPupilCenterY - xSize / 2);
-                this.ctx.lineTo(rightPupilCenterX - xSize / 2, rightPupilCenterY + xSize / 2);
-                this.ctx.stroke();
+                this.drawSpiral(rightPupilCenterX, rightPupilCenterY, eyeSize * 0.9, particle.dizzinessLevel, -(particle.spiralRotation || 0));
             } else {
                 // Normal pupils
                 // Left pupil
