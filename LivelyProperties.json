@@ -1,0 +1,96 @@
+{
+    "susuwatariSize": {
+        "max": 150,
+        "min": 10,
+        "text": "Initial Susuwatari Size",
+        "type": "slider",
+        "value": 18,
+        "help": "Controls the base size of each Susuwatari sprite"
+    },
+    "susuwatariCount": {
+        "max": 150,
+        "min": 1,
+        "text": "Initial Susuwatari Count",
+        "type": "slider",
+        "value": 100,
+        "help": "Number of Susuwatari sprites on screen"
+    },
+    "fleeDistance": {
+        "max": 100,
+        "min": 10,
+        "text": "Mouse Detection Distance",
+        "type": "slider",
+        "value": 80,
+        "help": "How close the mouse can get before Susuwatari start fleeing"
+    },
+    "fleeAcceleration": {
+        "max": 8.0,
+        "min": 1.0,
+        "step": 0.1,
+        "text": "Flee Acceleration",
+        "type": "slider",
+        "value": 4.0,
+        "help": "How fast Susuwatari accelerate when fleeing from the mouse"
+    },
+    "audioIntensity": {
+        "max": 3.0,
+        "min": 0.0,
+        "step": 0.1,
+        "text": "Audio Reactivity Intensity",
+        "type": "slider",
+        "value": 1.0,
+        "help": "Controls how much the spikes react to audio frequencies"
+    },
+    "bassPulseIntensity": {
+        "max": 3.0,
+        "min": 0.0,
+        "step": 0.1,
+        "text": "Bass Pulse Intensity",
+        "type": "slider",
+        "value": 1.0,
+        "help": "Controls how much the eyes pulse with bass frequencies"
+    },
+    "audioVisualizationEnabled": {
+        "text": "Audio Visualization",
+        "type": "checkbox",
+        "value": true,
+        "help": "Master toggle for all audio-reactive effects"
+    },
+    "maxRunDistance": {
+        "max": 800,
+        "min": 100,
+        "step": 10,
+        "text": "Max Run Distance Before Tired",
+        "type": "slider",
+        "value": 300,
+        "help": "Distance Susuwatari can run before getting tired"
+    },
+    "sleepTime": {
+        "max": 60,
+        "min": 3,
+        "text": "Sleep Time (seconds)",
+        "type": "slider",
+        "value": 10,
+        "help": "Time before Susuwatari fall asleep when mouse is still"
+    },
+    "sleepEnabled": {
+        "text": "Enable Sleep System",
+        "type": "checkbox",
+        "value": true,
+        "help": "Allow Susuwatari to fall asleep when mouse is inactive"
+    },
+    "restTimeout": {
+        "max": 15,
+        "min": 2,
+        "text": "Rest Timeout When Dizzy (seconds)",
+        "type": "slider",
+        "value": 5,
+        "help": "Time to rest when Susuwatari become dizzy from rapid mouse movement"
+    },
+    "backgroundImageUrl": {
+        "text": "Background Image URL/Path",
+        "type": "textbox",
+        "value": "",
+        "help": "Enter a URL or local file path to a background image (e.g., https://example.com/image.jpg or C:\\path\\to\\image.png)"
+    }
+}

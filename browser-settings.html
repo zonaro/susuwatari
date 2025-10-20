@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Susuwatari Settings - Browser Mode</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: #ffffff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .settings-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: rgba(22, 33, 62, 0.9);
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: 300;
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(15, 52, 96, 0.4);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .setting-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        .setting-description {
+            font-size: 12px;
+            color: #b0b0b0;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            margin-bottom: 8px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #4CAF50;
+        }
+
+        .value-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .current-value {
+            font-weight: 600;
+            color: #4CAF50;
+            font-size: 14px;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+            transform: translateY(-1px);
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .status-success {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            color: #4CAF50;
+        }
+
+        .status-info {
+            background: rgba(33, 150, 243, 0.2);
+            border: 1px solid rgba(33, 150, 243, 0.3);
+            color: #2196F3;
+        }
+
+        .divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="settings-container">
+        <h1>🎨 Susuwatari Settings</h1>
+
+        <div id="statusMessage" class="status-message status-info">
+            Browser mode detected. Settings will be saved locally.
+        </div>
+
+        <!-- Appearance Settings -->
+        <div class="setting-group">
+            <div class="setting-label">Susuwatari Size</div>
+            <div class="setting-description">Controls the base size of each Susuwatari sprite</div>
+            <div class="value-display">
+                <span>10px</span>
+                <span class="current-value" id="sizeValue">18px</span>
+                <span>150px</span>
+            </div>
+            <input type="range" id="susuwatariSize" min="10" max="150" value="18">
+        </div>
+
+        <div class="setting-group">
+            <div class="setting-label">Susuwatari Count</div>
+            <div class="setting-description">Number of Susuwatari sprites on screen</div>
+            <div class="value-display">
+                <span>1</span>
+                <span class="current-value" id="countValue">100</span>
+                <span>150</span>
+            </div>
+            <input type="range" id="susuwatariCount" min="1" max="150" value="100">
+        </div>
+
+        <!-- Interaction Settings -->
+        <div class="setting-group">
+            <div class="setting-label">Mouse Detection Distance</div>
+            <div class="setting-description">How close the mouse can get before Susuwatari start fleeing</div>
+            <div class="value-display">
+                <span>10px</span>
+                <span class="current-value" id="distanceValue">80px</span>
+                <span>100px</span>
+            </div>
+            <input type="range" id="fleeDistance" min="10" max="100" value="80">
+        </div>
+
+        <div class="setting-group">
+            <div class="setting-label">Flee Acceleration</div>
+            <div class="setting-description">How fast Susuwatari accelerate when fleeing from the mouse</div>
+            <div class="value-display">
+                <span>1.0x</span>
+                <span class="current-value" id="accelValue">4.0x</span>
+                <span>8.0x</span>
+            </div>
+            <input type="range" id="fleeAcceleration" min="1.0" max="8.0" step="0.1" value="4.0">
+        </div>
+
+        <!-- Audio Settings -->
+        <div class="setting-group">
+            <div class="setting-label">Audio Visualization</div>
+            <div class="setting-description">Master toggle for all audio-reactive effects</div>
+            <div class="checkbox-container">
+                <input type="checkbox" id="audioVisualizationEnabled" checked>
+                <label for="audioVisualizationEnabled">Enable audio visualization</label>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <div class="setting-label">Audio Reactivity Intensity</div>
+            <div class="setting-description">Controls how much the spikes react to audio frequencies</div>
+            <div class="value-display">
+                <span>0.0x</span>
+                <span class="current-value" id="audioValue">1.0x</span>
+                <span>3.0x</span>
+            </div>
+            <input type="range" id="audioIntensity" min="0.0" max="3.0" step="0.1" value="1.0">
+        </div>
+
+        <div class="setting-group">
+            <div class="setting-label">Bass Pulse Intensity</div>
+            <div class="setting-description">How much the eyes grow with bass frequencies</div>
+            <div class="value-display">
+                <span>0.0x</span>
+                <span class="current-value" id="bassValue">1.0x</span>
+                <span>3.0x</span>
+            </div>
+            <input type="range" id="bassPulseIntensity" min="0.0" max="3.0" step="0.1" value="1.0">
+        </div>
+
+        <div class="setting-group">
+            <div class="setting-label">Browser Audio Status</div>
+            <div class="setting-description">Enable microphone for audio-reactive effects in browser</div>
+            <div id="audioStatus" style="color: #ff6b6b; font-size: 14px; margin-bottom: 10px;">Audio not initialized
+            </div>
+            <button id="initAudioBtn" style="
+                background: #4CAF50;
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                width: 100%;
+                transition: background-color 0.3s ease;
+            ">🎵 Enable Audio Reactivity</button>
+        </div>
+
+        <!-- Behavior Settings -->
+        <div class="setting-group">
+            <div class="setting-label">Sleep System</div>
+            <div class="setting-description">Allow Susuwatari to fall asleep when mouse is inactive</div>
+            <div class="checkbox-container">
+                <input type="checkbox" id="sleepEnabled" checked>
+                <label for="sleepEnabled">Enable sleep system</label>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <div class="setting-label">Sleep Time</div>
+            <div class="setting-description">Time before Susuwatari fall asleep when mouse is still</div>
+            <div class="value-display">
+                <span>3s</span>
+                <span class="current-value" id="sleepValue">10s</span>
+                <span>60s</span>
+            </div>
+            <input type="range" id="sleepTime" min="3" max="60" value="10">
+        </div>
+
+        <div class="setting-group">
+            <div class="setting-label">Max Run Distance</div>
+            <div class="setting-description">Distance Susuwatari can run before getting tired</div>
+            <div class="value-display">
+                <span>100px</span>
+                <span class="current-value" id="runValue">300px</span>
+                <span>800px</span>
+            </div>
+            <input type="range" id="maxRunDistance" min="100" max="800" step="10" value="300">
+        </div>
+
+        <div class="setting-group">
+            <div class="setting-label">Rest Timeout</div>
+            <div class="setting-description">Time to rest when Susuwatari become dizzy from rapid mouse movement</div>
+            <div class="value-display">
+                <span>2s</span>
+                <span class="current-value" id="restValue">5s</span>
+                <span>15s</span>
+            </div>
+            <input type="range" id="restTimeout" min="2" max="15" value="5">
+        </div>
+
+        <!-- Background Image -->
+        <div class="setting-group">
+            <div class="setting-label">Background Image URL</div>
+            <div class="setting-description">Enter a URL or local file path to a background image</div>
+            <input type="text" id="backgroundImageUrl"
+                placeholder="https://example.com/image.jpg or C:\path\to\image.png">
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Buttons -->
+        <div class="button-container">
+            <button type="button" class="btn-secondary" onclick="resetToDefaults()">Reset Defaults</button>
+            <button type="button" class="btn-primary" onclick="applySettings()">Apply Settings</button>
+            <button type="button" class="btn-danger" onclick="window.close()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // Settings management for browser mode
+        const defaultSettings = {
+            susuwatariSize: 18,
+            susuwatariCount: 100,
+            fleeDistance: 80,
+            fleeAcceleration: 4.0,
+            audioIntensity: 1.0,
+            bassPulseIntensity: 1.0,
+            audioVisualizationEnabled: true,
+            maxRunDistance: 300,
+            sleepTime: 10,
+            sleepEnabled: true,
+            restTimeout: 5,
+            backgroundImageUrl: ''
+        };
+
+        // Load settings from localStorage or use defaults
+        function loadSettings() {
+            const saved = localStorage.getItem('susuwatari-settings');
+            return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
+        }
+
+        // Save settings to localStorage
+        function saveSettings(settings) {
+            localStorage.setItem('susuwatari-settings', JSON.stringify(settings));
+        }
+
+        // Update value displays
+        function updateValueDisplays() {
+            document.getElementById('sizeValue').textContent = document.getElementById('susuwatariSize').value + 'px';
+            document.getElementById('countValue').textContent = document.getElementById('susuwatariCount').value;
+            document.getElementById('distanceValue').textContent = document.getElementById('fleeDistance').value + 'px';
+            document.getElementById('accelValue').textContent = document.getElementById('fleeAcceleration').value + 'x';
+            document.getElementById('audioValue').textContent = document.getElementById('audioIntensity').value + 'x';
+            document.getElementById('bassValue').textContent = document.getElementById('bassPulseIntensity').value + 'x';
+            document.getElementById('sleepValue').textContent = document.getElementById('sleepTime').value + 's';
+            document.getElementById('runValue').textContent = document.getElementById('maxRunDistance').value + 'px';
+            document.getElementById('restValue').textContent = document.getElementById('restTimeout').value + 's';
+        }
+
+        // Initialize the settings panel
+        function initializeSettings() {
+            const settings = loadSettings();
+
+            // Set all input values
+            Object.keys(settings).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = settings[key];
+                    } else {
+                        element.value = settings[key];
+                    }
+                }
+            });
+
+            // Update value displays
+            updateValueDisplays();
+
+            // Add event listeners for real-time updates
+            document.querySelectorAll('input[type="range"]').forEach(input => {
+                input.addEventListener('input', updateValueDisplays);
+            });
+        }
+
+        // Apply settings and send to parent window
+        function applySettings() {
+            const settings = {};
+
+            // Collect all settings
+            Object.keys(defaultSettings).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        settings[key] = element.checked;
+                    } else if (element.type === 'range') {
+                        settings[key] = parseFloat(element.value);
+                    } else {
+                        settings[key] = element.value;
+                    }
+                }
+            });
+
+            // Save to localStorage
+            saveSettings(settings);
+
+            // Send to parent window if opener exists
+            if (window.opener && !window.opener.closed) {
+                window.opener.postMessage({
+                    type: 'susuwatari-settings-update',
+                    settings: settings
+                }, '*');
+            }
+
+            // Show success message
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.className = 'status-message status-success';
+            statusMessage.textContent = '✓ Settings applied successfully!';
+
+            setTimeout(() => {
+                statusMessage.className = 'status-message status-info';
+                statusMessage.textContent = 'Browser mode detected. Settings will be saved locally.';
+            }, 2000);
+        }
+
+        // Reset to default settings
+        function resetToDefaults() {
+            if (confirm('Are you sure you want to reset all settings to their default values?')) {
+                Object.keys(defaultSettings).forEach(key => {
+                    const element = document.getElementById(key);
+                    if (element) {
+                        if (element.type === 'checkbox') {
+                            element.checked = defaultSettings[key];
+                        } else {
+                            element.value = defaultSettings[key];
+                        }
+                    }
+                });
+
+                updateValueDisplays();
+
+                // Clear localStorage
+                localStorage.removeItem('susuwatari-settings');
+
+                // Show reset message
+                const statusMessage = document.getElementById('statusMessage');
+                statusMessage.className = 'status-message status-success';
+                statusMessage.textContent = '🔄 Settings reset to defaults!';
+
+                setTimeout(() => {
+                    statusMessage.className = 'status-message status-info';
+                    statusMessage.textContent = 'Browser mode detected. Settings will be saved locally.';
+                }, 2000);
+            }
+        }
+
+        // Browser Audio Functions
+        async function initializeBrowserAudio() {
+            const audioStatus = document.getElementById('audioStatus');
+            const initAudioBtn = document.getElementById('initAudioBtn');
+
+            try {
+                audioStatus.textContent = 'Requesting microphone access...';
+                audioStatus.style.color = '#ffa500';
+                initAudioBtn.disabled = true;
+
+                // Check if parent window has audio functions
+                if (window.opener && window.opener.setupBrowserAudio) {
+                    await window.opener.setupBrowserAudio();
+                    audioStatus.textContent = '✅ Audio reactivity enabled';
+                    audioStatus.style.color = '#4CAF50';
+                    initAudioBtn.textContent = '🎵 Audio Active';
+                    initAudioBtn.style.background = '#4CAF50';
+                } else {
+                    throw new Error('Parent window audio functions not available');
+                }
+            } catch (error) {
+                console.error('Failed to initialize audio:', error);
+                audioStatus.textContent = '❌ Failed to enable audio: ' + error.message;
+                audioStatus.style.color = '#ff6b6b';
+                initAudioBtn.disabled = false;
+                initAudioBtn.textContent = '🔄 Try Again';
+            }
+        }
+
+        function checkAudioStatus() {
+            const audioStatus = document.getElementById('audioStatus');
+            const initAudioBtn = document.getElementById('initAudioBtn');
+
+            if (window.opener && window.opener.browserAudioInitialized) {
+                audioStatus.textContent = '✅ Audio reactivity enabled';
+                audioStatus.style.color = '#4CAF50';
+                initAudioBtn.textContent = '🎵 Audio Active';
+                initAudioBtn.style.background = '#4CAF50';
+                initAudioBtn.disabled = true;
+            } else {
+                audioStatus.textContent = 'Audio not initialized - click to enable';
+                audioStatus.style.color = '#ffa500';
+                initAudioBtn.addEventListener('click', initializeBrowserAudio);
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeSettings();
+            checkAudioStatus();
+        });
+
+        // Handle keyboard shortcuts
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                applySettings();
+            } else if (e.key === 'Escape') {
+                window.close();
+            }
+        });
+    </script>
+</body>
+
+</html>

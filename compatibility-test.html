@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Susuwatari Compatibility Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a2e;
+            color: white;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background: #16213e;
+        }
+
+        .success {
+            color: #4CAF50;
+        }
+
+        .error {
+            color: #f44336;
+        }
+
+        .warning {
+            color: #ff9800;
+        }
+
+        button {
+            background: #0f3460;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1a5a8a;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Susuwatari Dual Compatibility Test</h1>
+
+    <div class="test-section">
+        <h2>Engine Detection</h2>
+        <div id="engine-detection"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Property System Test</h2>
+        <div id="property-test"></div>
+        <button onclick="testWallpaperEngineProperties()">Test Wallpaper Engine Properties</button>
+        <button onclick="testLivelyProperties()">Test Lively Wallpaper Properties</button>
+        <button onclick="testBackgroundImage()">Test Background Image URL</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Audio System Test</h2>
+        <div id="audio-test"></div>
+        <button onclick="testAudioSystems()">Test Audio Systems</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Browser Mode Test</h2>
+        <div id="browser-test"></div>
+        <button onclick="testBrowserMode()">Test Browser Settings</button>
+        <button onclick="openBrowserSettings()">Open Settings Panel</button>
+    </div>
+
+    <script>
+        // Engine Detection Test
+        function detectEngines() {
+            const results = [];
+
+            const isWallpaperEngine = typeof window.wallpaperRegisterAudioListener !== 'undefined';
+            const isLivelyWallpaper = typeof window.livelyCurrentTrack !== 'undefined' ||
+                typeof window.livelyAudioListener !== 'undefined';
+            const isBrowserMode = !isWallpaperEngine && !isLivelyWallpaper;
+
+            results.push(`<span class="${isWallpaperEngine ? 'success' : 'warning'}">Wallpaper Engine: ${isWallpaperEngine ? '✓ Detected' : '✗ Not Detected'}</span>`);
+            results.push(`<span class="${isLivelyWallpaper ? 'success' : 'warning'}">Lively Wallpaper: ${isLivelyWallpaper ? '✓ Detected' : '✗ Not Detected'}</span>`);
+            results.push(`<span class="${isBrowserMode ? 'success' : 'warning'}">Browser Mode: ${isBrowserMode ? '✓ Active' : '✗ Not Active'}</span>`);
+
+            if (isBrowserMode) {
+                results.push(`<span style="color: #2196F3;">🌐 Running in Web Browser with settings panel support</span>`);
+                results.push(`<span style="color: #ccc;">Right-click or Ctrl+Shift+S to open settings</span>`);
+            }
+
+            document.getElementById('engine-detection').innerHTML = results.join('<br>');
+        }
+
+        // Test Wallpaper Engine Properties
+        function testWallpaperEngineProperties() {
+            const testProps = {
+                susuwatari_size: { value: 25 },
+                susuwatari_count: { value: 75 },
+                flee_distance: { value: 60 },
+                audio_intensity: { value: 1.5 }
+            };
+
+            let result = '';
+
+            if (typeof window.wallpaperPropertyListener !== 'undefined') {
+                try {
+                    window.wallpaperPropertyListener.applyUserProperties(testProps);
+                    result = '<span class="success">✓ Wallpaper Engine properties applied successfully</span>';
+                } catch (e) {
+                    result = `<span class="error">✗ Error applying Wallpaper Engine properties: ${e.message}</span>`;
+                }
+            } else {
+                result = '<span class="warning">⚠ Wallpaper Engine property listener not available</span>';
+            }
+
+            document.getElementById('property-test').innerHTML = result;
+        }
+
+        // Test Lively Wallpaper Properties
+        function testLivelyProperties() {
+            let result = '';
+
+            if (typeof window.livelyPropertyListener !== 'undefined') {
+                try {
+                    livelyPropertyListener('susuwatariSize', 30);
+                    livelyPropertyListener('susuwatariCount', 80);
+                    livelyPropertyListener('fleeDistance', 50);
+                    livelyPropertyListener('audioIntensity', 2.0);
+                    livelyPropertyListener('backgroundImageUrl', 'https://images.unsplash.com/photo-1520637836862-4d197d17c55a?w=1920&h=1080');
+                    result = '<span class="success">✓ Lively Wallpaper properties applied successfully (including background image URL)</span>';
+                } catch (e) {
+                    result = `<span class="error">✗ Error applying Lively Wallpaper properties: ${e.message}</span>`;
+                }
+            } else {
+                result = '<span class="warning">⚠ Lively Wallpaper property listener not available</span>';
+            }
+
+            document.getElementById('property-test').innerHTML = result;
+        }
+
+        // Test Audio Systems
+        function testAudioSystems() {
+            const results = [];
+
+            // Test Wallpaper Engine Audio
+            if (typeof window.wallpaperRegisterAudioListener !== 'undefined') {
+                results.push('<span class="success">✓ Wallpaper Engine audio registration available</span>');
+            } else {
+                results.push('<span class="warning">⚠ Wallpaper Engine audio not available</span>');
+            }
+
+            // Test Lively Audio
+            if (typeof window.livelyAudioListener !== 'undefined') {
+                results.push('<span class="success">✓ Lively Wallpaper audio listener available</span>');
+            } else {
+                results.push('<span class="warning">⚠ Lively Wallpaper audio not available</span>');
+            }
+
+            // Test global audio function
+            if (typeof window.wallpaperAudioListener !== 'undefined') {
+                results.push('<span class="success">✓ Global audio listener function available</span>');
+
+                // Test with mock data
+                try {
+                    const mockAudioData = new Array(128).fill(0.1);
+                    wallpaperAudioListener(mockAudioData);
+                    results.push('<span class="success">✓ Audio data processing test passed</span>');
+                } catch (e) {
+                    results.push(`<span class="error">✗ Audio processing error: ${e.message}</span>`);
+                }
+            } else {
+                results.push('<span class="error">✗ Global audio listener function not available</span>');
+            }
+
+            document.getElementById('audio-test').innerHTML = results.join('<br>');
+        }
+
+        // Test Background Image URL Feature
+        function testBackgroundImage() {
+            let result = '';
+            const testImageUrl = 'https://images.unsplash.com/photo-1520637836862-4d197d17c55a?w=1920&h=1080&fit=crop&crop=center';
+
+            if (typeof window.livelyPropertyListener !== 'undefined') {
+                try {
+                    livelyPropertyListener('backgroundImageUrl', testImageUrl);
+                    result = '<span class="success">✓ Background image URL test completed</span><br>';
+                    result += `<span style="color: #ccc;">Test URL: ${testImageUrl}</span><br>`;
+                    result += '<span style="color: #ccc;">Check if the background changed to a space image</span>';
+                } catch (e) {
+                    result = `<span class="error">✗ Background image URL test failed: ${e.message}</span>`;
+                }
+            } else {
+                result = '<span class="warning">⚠ Lively Wallpaper property listener not available for background image test</span>';
+            }
+
+            document.getElementById('property-test').innerHTML = result;
+        }
+
+        // Test Browser Mode Functions
+        function testBrowserMode() {
+            const results = [];
+
+            // Test localStorage availability
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                results.push('<span class="success">✓ localStorage available for settings storage</span>');
+            } catch (e) {
+                results.push('<span class="error">✗ localStorage not available: ' + e.message + '</span>');
+            }
+
+            // Test if browser settings functions exist
+            if (typeof window.openSettingsPanel === 'function') {
+                results.push('<span class="success">✓ Browser settings panel function available</span>');
+            } else {
+                results.push('<span class="warning">⚠ Browser settings panel function not loaded yet</span>');
+            }
+
+            // Test if we can open popups
+            try {
+                const testPopup = window.open('', 'test-popup', 'width=1,height=1');
+                if (testPopup) {
+                    testPopup.close();
+                    results.push('<span class="success">✓ Popup windows allowed (settings panel will work)</span>');
+                } else {
+                    results.push('<span class="warning">⚠ Popup windows blocked (settings panel may not open)</span>');
+                }
+            } catch (e) {
+                results.push('<span class="error">✗ Error testing popup capability: ' + e.message + '</span>');
+            }
+
+            // Test message passing
+            window.addEventListener('message', function testMessageHandler(event) {
+                if (event.data && event.data.type === 'test-message') {
+                    results.push('<span class="success">✓ Message passing system working</span>');
+                    document.getElementById('browser-test').innerHTML = results.join('<br>');
+                    window.removeEventListener('message', testMessageHandler);
+                }
+            });
+
+            // Send test message
+            setTimeout(() => {
+                window.postMessage({ type: 'test-message' }, '*');
+            }, 100);
+
+            document.getElementById('browser-test').innerHTML = results.join('<br>');
+        }
+
+        // Open browser settings panel
+        function openBrowserSettings() {
+            try {
+                const popup = window.open(
+                    'browser-settings.html',
+                    'susuwatari-settings-test',
+                    'width=600,height=800,scrollbars=yes,resizable=yes'
+                );
+
+                if (popup) {
+                    document.getElementById('browser-test').innerHTML =
+                        '<span class="success">✓ Settings panel opened successfully!</span><br>' +
+                        '<span style="color: #ccc;">Check the popup window to test the settings interface.</span>';
+                } else {
+                    document.getElementById('browser-test').innerHTML =
+                        '<span class="error">✗ Failed to open settings panel - popup blocked</span><br>' +
+                        '<span style="color: #ccc;">Please allow popups for this site and try again.</span>';
+                }
+            } catch (e) {
+                document.getElementById('browser-test').innerHTML =
+                    '<span class="error">✗ Error opening settings panel: ' + e.message + '</span>';
+            }
+        }
+
+        // Run detection on load
+        window.addEventListener('load', function () {
+            detectEngines();
+        });
+    </script>
+</body>
+
+</html>

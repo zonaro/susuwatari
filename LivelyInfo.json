@@ -1,0 +1,14 @@
+{
+    "AppVersion": "2.0.7.0",
+    "Title": "Susuwatari - Interactive Soot Sprites",
+    "Thumbnail": "preview.gif",
+    "Preview": "preview.gif",
+    "Desc": "Interactive Susuwatari (soot sprites) wallpaper inspired by Studio Ghibli films. These cute dust bunnies run away from your mouse cursor with realistic physics and leave soot trails behind. Features customizable size, count, flee distance, acceleration, and audio-reactive spikes that pulse and rotate to the beat of your music. Each Susuwatari has a unique rotation and orientation, creating diverse visual patterns when music plays. They also pulse in size to bass frequencies, creating a rhythmic breathing effect. When the mouse doesn't move for a configurable time, Susuwatari fall asleep with their eyes closed and animated 'ZZZ' floating above them. Move your mouse rapidly in circles around a Susuwatari to make it dizzy - it will show 'X' eyes and wobble around until it recovers! Includes particle effects like smoke explosions and soot stains when they disappear.",
+    "Author": "Zonaro",
+    "License": "Free",
+    "Contact": "https://github.com/zonaro/susuwatari",
+    "Type": 0,
+    "FileName": "index.html",
+    "Arguments": null,
+    "IsAbsolutePath": false
+}

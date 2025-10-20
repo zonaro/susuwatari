@@ -222,18 +222,31 @@ class SusuwatariCanvas {
             this.restTimeout = properties.rest_timeout.value;
         }
 
-        // Background image property
+        // Background image property (supports both Wallpaper Engine file paths and Lively Wallpaper URLs/paths)
         if (properties.background_image) {
             const imageValue = properties.background_image.value;
             if (imageValue && imageValue.trim() !== '') {
-                // User has selected an image
-                const imageUrl = 'file:///' + imageValue;
+                let imageUrl;
+
+                // Check if it's already a URL (starts with http:// or https://)
+                if (imageValue.startsWith('http://') || imageValue.startsWith('https://')) {
+                    imageUrl = imageValue;
+                } else if (imageValue.startsWith('file://')) {
+                    // Already a file URL
+                    imageUrl = imageValue;
+                } else {
+                    // Assume it's a local file path (from Wallpaper Engine or Lively with local path)
+                    imageUrl = 'file:///' + imageValue.replace(/\\/g, '/');
+                }
+
                 document.body.style.backgroundImage = `url('${imageUrl}')`;
                 document.body.style.background = `url('${imageUrl}') center/cover no-repeat`;
+                console.log('Background image set:', imageUrl);
             } else {
                 // No image selected, use default gradient
                 document.body.style.backgroundImage = '';
                 document.body.style.background = 'linear-gradient(135deg, #1a1a2e, #16213e, #0f3460)';
+                console.log('Background image cleared, using default gradient');
             }
         }
     }
@@ -1851,11 +1864,6 @@ class SusuwatariCanvas {
 // Global instance for Wallpaper Engine
 let susuwatariInstance = null;
 
-// Initialize when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    susuwatariInstance = new SusuwatariCanvas();
-});
-
 // Audio listener function for Wallpaper Engine
 function wallpaperAudioListener(audioArray) {
     if (susuwatariInstance) {
@@ -1872,13 +1880,569 @@ window.wallpaperPropertyListener = {
     }
 };
 
+// Global function required for Lively Wallpaper
+function livelyPropertyListener(name, val) {
+    if (!susuwatariInstance) return;
+
+    // Convert Lively property names to Wallpaper Engine format
+    const livelyToWallpaperMap = {
+        'susuwatariSize': 'susuwatari_size',
+        'susuwatariCount': 'susuwatari_count',
+        'fleeDistance': 'flee_distance',
+        'fleeAcceleration': 'flee_acceleration',
+        'audioIntensity': 'audio_intensity',
+        'bassPulseIntensity': 'bass_pulse_intensity',
+        'audioVisualizationEnabled': 'audio_visualization_enabled',
+        'maxRunDistance': 'max_run_distance',
+        'sleepTime': 'sleep_time',
+        'sleepEnabled': 'sleep_enabled',
+        'restTimeout': 'rest_timeout',
+        'backgroundImageUrl': 'background_image'
+    };
+
+    const wallpaperPropertyName = livelyToWallpaperMap[name];
+    if (wallpaperPropertyName) {
+        // Create property object in Wallpaper Engine format
+        const properties = {};
+        properties[wallpaperPropertyName] = { value: val };
+        susuwatariInstance.applyUserProperties(properties);
+    }
+}
+
+// Detect wallpaper engine and initialize accordingly
+
+// Initialize the wallpaper
+document.addEventListener('DOMContentLoaded', function () {
+    susuwatariInstance = new SusuwatariCanvas();
+
+    // Detect which wallpaper engine is running
+    const isWallpaperEngine = typeof window.wallpaperRegisterAudioListener !== 'undefined';
+    const isLivelyWallpaper = typeof window.livelyCurrentTrack !== 'undefined' ||
+        typeof window.livelyAudioListener !== 'undefined' ||
+        document.querySelector('script[src*="lively"]') !== null;
+
+    console.log('Wallpaper Engine Detection:');
+    console.log('- Wallpaper Engine:', isWallpaperEngine);
+    console.log('- Lively Wallpaper:', isLivelyWallpaper);
+
+    // Initialize audio for the detected engine
+    if (isWallpaperEngine) {
+        console.log('Initializing for Wallpaper Engine...');
+        // Register the audio listener with Wallpaper Engine
+        try {
+            window.wallpaperRegisterAudioListener(wallpaperAudioListener);
+        } catch (e) {
+            console.warn('Failed to register Wallpaper Engine audio listener:', e);
+        }
+    } else if (isLivelyWallpaper) {
+        console.log('Initializing for Lively Wallpaper...');
+        // Lively Wallpaper audio handling (if available)
+        if (typeof window.livelyAudioListener !== 'undefined') {
+            // Override livelyAudioListener if it exists
+            const originalLivelyAudioListener = window.livelyAudioListener;
+            window.livelyAudioListener = function (audioArray) {
+                if (susuwatariInstance) {
+                    susuwatariInstance.wallpaperAudioListener(audioArray);
+                }
+                // Call original if it existed
+                if (originalLivelyAudioListener && typeof originalLivelyAudioListener === 'function') {
+                    originalLivelyAudioListener(audioArray);
+                }
+            };
+        } else {
+            // Define livelyAudioListener for Lively Wallpaper
+            window.livelyAudioListener = function (audioArray) {
+                if (susuwatariInstance) {
+                    susuwatariInstance.wallpaperAudioListener(audioArray);
+                }
+            };
+        }
+    } else {
+        console.log('Running in standard web browser mode');
+        // Initialize browser mode with settings panel
+        initializeBrowserMode();
+        // Initialize Web Audio API for browser mode
+        initializeBrowserAudio();
+    }
+
+    // Initialize Lively properties on load
+    if (isLivelyWallpaper && typeof livelyPropertyListener === 'function') {
+        // Load default properties for Lively Wallpaper
+        const defaultProperties = {
+            'susuwatariSize': 18,
+            'susuwatariCount': 100,
+            'fleeDistance': 80,
+            'fleeAcceleration': 4.0,
+            'audioIntensity': 1.0,
+            'bassPulseIntensity': 1.0,
+            'audioVisualizationEnabled': true,
+            'maxRunDistance': 300,
+            'sleepTime': 10,
+            'sleepEnabled': true,
+            'restTimeout': 5,
+            'backgroundImageUrl': ''
+        };
+
+        // Apply each default property
+        Object.keys(defaultProperties).forEach(key => {
+            livelyPropertyListener(key, defaultProperties[key]);
+        });
+    }
+});
+
 // Alternative function for compatibility
 if (typeof window.wallpaperRegisterAudioListener === 'undefined') {
-    window.wallpaperRegisterAudioListener = function () { };
-} else {
-    // Register the audio listener with Wallpaper Engine
-    window.wallpaperRegisterAudioListener(wallpaperAudioListener);
+    window.wallpaperRegisterAudioListener = function () {
+        console.log('wallpaperRegisterAudioListener not available - running in compatibility mode');
+    };
 }
+
+// Browser Audio Functions using Web Audio API
+let browserAudioContext = null;
+let browserAnalyser = null;
+let browserAudioDataArray = null;
+let browserAudioStream = null;
+let browserAudioInitialized = false;
+
+function initializeBrowserAudio() {
+    console.log('Initializing Web Audio API for browser mode...');
+
+    // Create audio button overlay for user interaction (required by browser security)
+    createAudioButton();
+}
+
+function createAudioButton() {
+    // Create audio enable button
+    const audioButton = document.createElement('div');
+    audioButton.id = 'browser-audio-button';
+    audioButton.innerHTML = `
+        <div style="
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(22, 33, 62, 0.95);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            z-index: 10001;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        ">
+            <div style="font-weight: bold; margin-bottom: 8px;">🎵 Enable Audio Reactivity</div>
+            <div style="font-size: 12px; color: #ccc; margin-bottom: 10px;">
+                Click to enable microphone for audio-reactive effects.<br>
+                Your audio data stays private and local.
+            </div>
+            <div style="
+                background: #4CAF50;
+                color: white;
+                padding: 8px 12px;
+                border-radius: 4px;
+                text-align: center;
+                font-size: 12px;
+                margin-top: 10px;
+            ">Enable Audio</div>
+        </div>
+    `;
+
+    audioButton.addEventListener('click', async function () {
+        try {
+            await setupBrowserAudio();
+            audioButton.remove();
+        } catch (error) {
+            console.error('Failed to setup browser audio:', error);
+            audioButton.innerHTML = `
+                <div style="
+                    position: fixed;
+                    top: 20px;
+                    left: 20px;
+                    background: rgba(139, 0, 0, 0.95);
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 8px;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                    font-family: Arial, sans-serif;
+                    font-size: 14px;
+                    z-index: 10001;
+                    cursor: pointer;
+                ">
+                    <div style="font-weight: bold; margin-bottom: 8px;">⚠️ Audio Setup Failed</div>
+                    <div style="font-size: 12px; color: #ccc; margin-bottom: 10px;">
+                        Could not access microphone. Check permissions or try again.
+                    </div>
+                    <div onclick="this.parentElement.parentElement.remove()" style="
+                        background: rgba(255, 255, 255, 0.1);
+                        color: white;
+                        padding: 8px 12px;
+                        border-radius: 4px;
+                        text-align: center;
+                        font-size: 12px;
+                        margin-top: 10px;
+                        cursor: pointer;
+                    ">Dismiss</div>
+                </div>
+            `;
+            // Auto-remove error message after 5 seconds
+            setTimeout(() => {
+                if (audioButton.parentElement) {
+                    audioButton.remove();
+                }
+            }, 5000);
+        }
+    });
+
+    document.body.appendChild(audioButton);
+
+    // Auto-hide button after 15 seconds if not used
+    setTimeout(() => {
+        if (audioButton.parentElement && !browserAudioInitialized) {
+            audioButton.style.opacity = '0';
+            setTimeout(() => {
+                if (audioButton.parentElement) {
+                    audioButton.remove();
+                }
+            }, 300);
+        }
+    }, 15000);
+}
+
+async function setupBrowserAudio() {
+    try {
+        console.log('Setting up Web Audio API...');
+
+        // Request microphone access
+        browserAudioStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false
+            }
+        });
+
+        // Create audio context
+        browserAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Create analyser node
+        browserAnalyser = browserAudioContext.createAnalyser();
+        browserAnalyser.fftSize = 256; // This gives us 128 frequency bins
+        browserAnalyser.smoothingTimeConstant = 0.5;
+
+        // Create source from stream
+        const source = browserAudioContext.createMediaStreamSource(browserAudioStream);
+        source.connect(browserAnalyser);
+
+        // Create data array for frequency data
+        browserAudioDataArray = new Uint8Array(browserAnalyser.frequencyBinCount);
+
+        browserAudioInitialized = true;
+        console.log('Browser audio initialized successfully');
+
+        // Start audio processing loop
+        processBrowserAudio();
+
+        // Show success notification
+        showAudioSuccessNotification();
+
+    } catch (error) {
+        console.error('Error setting up browser audio:', error);
+        throw error;
+    }
+}
+
+function processBrowserAudio() {
+    if (!browserAudioInitialized || !browserAnalyser || !susuwatariInstance) {
+        return;
+    }
+
+    // Get frequency data
+    browserAnalyser.getByteFrequencyData(browserAudioDataArray);
+
+    // Convert to float array matching Wallpaper Engine format (0.0 to 1.0)
+    const normalizedAudioData = new Array(128);
+    for (let i = 0; i < 128; i++) {
+        // Map frequency data to 0.0-1.0 range
+        normalizedAudioData[i] = (browserAudioDataArray[i] || 0) / 255.0;
+    }
+
+    // Feed to Susuwatari audio system
+    if (susuwatariInstance && typeof susuwatariInstance.wallpaperAudioListener === 'function') {
+        susuwatariInstance.wallpaperAudioListener(normalizedAudioData);
+    }
+
+    // Continue processing
+    requestAnimationFrame(processBrowserAudio);
+}
+
+function showAudioSuccessNotification() {
+    const notification = document.createElement('div');
+    notification.innerHTML = `
+        <div style="
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(76, 175, 80, 0.95);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            z-index: 10001;
+            transition: opacity 0.3s ease;
+        ">
+            <div style="font-weight: bold; margin-bottom: 8px;">✅ Audio Reactivity Enabled</div>
+            <div style="font-size: 12px; color: rgba(255, 255, 255, 0.9);">
+                Your Susuwatari will now react to microphone audio.<br>
+                Play music or make sounds to see them dance!
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    // Auto-hide after 4 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.style.opacity = '0';
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 300);
+        }
+    }, 4000);
+}
+
+// Cleanup function for browser audio
+function cleanupBrowserAudio() {
+    if (browserAudioStream) {
+        browserAudioStream.getTracks().forEach(track => track.stop());
+        browserAudioStream = null;
+    }
+
+    if (browserAudioContext && browserAudioContext.state !== 'closed') {
+        browserAudioContext.close();
+        browserAudioContext = null;
+    }
+
+    browserAnalyser = null;
+    browserAudioDataArray = null;
+    browserAudioInitialized = false;
+
+    console.log('Browser audio cleaned up');
+}
+
+// Add cleanup on page unload
+window.addEventListener('beforeunload', cleanupBrowserAudio);
+
+// Browser Mode Functions
+function initializeBrowserMode() {
+    console.log('Initializing browser mode with settings panel support...');
+
+    // Load saved settings from localStorage
+    loadBrowserSettings();
+
+    // Add settings panel trigger (keyboard shortcut and right-click menu)
+    setupBrowserControls();
+
+    // Listen for settings updates from popup
+    window.addEventListener('message', function (event) {
+        if (event.data && event.data.type === 'susuwatari-settings-update') {
+            console.log('Received settings update from popup:', event.data.settings);
+            applyBrowserSettings(event.data.settings);
+        }
+    });
+}
+
+function loadBrowserSettings() {
+    try {
+        const saved = localStorage.getItem('susuwatari-settings');
+        if (saved) {
+            const settings = JSON.parse(saved);
+            console.log('Loading saved browser settings:', settings);
+            applyBrowserSettings(settings);
+        } else {
+            console.log('No saved settings found, using defaults');
+            // Apply default settings for browser mode
+            const defaultSettings = {
+                susuwatariSize: 18,
+                susuwatariCount: 100,
+                fleeDistance: 80,
+                fleeAcceleration: 4.0,
+                audioIntensity: 1.0,
+                bassPulseIntensity: 1.0,
+                audioVisualizationEnabled: true,
+                maxRunDistance: 300,
+                sleepTime: 10,
+                sleepEnabled: true,
+                restTimeout: 5,
+                backgroundImageUrl: ''
+            };
+            applyBrowserSettings(defaultSettings);
+        }
+    } catch (e) {
+        console.warn('Error loading browser settings:', e);
+    }
+}
+
+function applyBrowserSettings(settings) {
+    if (!susuwatariInstance) return;
+
+    // Convert browser settings to Wallpaper Engine format and apply
+    const properties = {};
+
+    // Map all settings
+    const browserToWallpaperMap = {
+        'susuwatariSize': 'susuwatari_size',
+        'susuwatariCount': 'susuwatari_count',
+        'fleeDistance': 'flee_distance',
+        'fleeAcceleration': 'flee_acceleration',
+        'audioIntensity': 'audio_intensity',
+        'bassPulseIntensity': 'bass_pulse_intensity',
+        'audioVisualizationEnabled': 'audio_visualization_enabled',
+        'maxRunDistance': 'max_run_distance',
+        'sleepTime': 'sleep_time',
+        'sleepEnabled': 'sleep_enabled',
+        'restTimeout': 'rest_timeout',
+        'backgroundImageUrl': 'background_image'
+    };
+
+    Object.keys(settings).forEach(key => {
+        const wallpaperKey = browserToWallpaperMap[key];
+        if (wallpaperKey) {
+            properties[wallpaperKey] = { value: settings[key] };
+        }
+    });
+
+    console.log('Applying browser settings as properties:', properties);
+    susuwatariInstance.applyUserProperties(properties);
+}
+
+function setupBrowserControls() {
+    // Add keyboard shortcut (Ctrl+Shift+S) to open settings
+    document.addEventListener('keydown', function (e) {
+        if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+            e.preventDefault();
+            openSettingsPanel();
+        }
+    });
+
+    // Add right-click context menu for settings
+    document.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        openSettingsPanel();
+    });
+
+    // Add notification overlay for first-time users
+    showBrowserModeNotification();
+}
+
+function openSettingsPanel() {
+    try {
+        // Open settings panel in a new popup window
+        const popup = window.open(
+            'browser-settings.html',
+            'susuwatari-settings',
+            'width=600,height=800,scrollbars=yes,resizable=yes,location=no,menubar=no,toolbar=no,status=no'
+        );
+
+        if (popup) {
+            console.log('Settings panel opened successfully');
+            // Focus the popup window
+            popup.focus();
+        } else {
+            console.warn('Failed to open settings panel - popup blocked?');
+            // Fallback: show alert with instructions
+            alert('Settings Panel\n\nPopup blocked! Please allow popups for this site.\n\nAlternatively, use:\n• Right-click anywhere to open settings\n• Ctrl+Shift+S keyboard shortcut');
+        }
+    } catch (e) {
+        console.error('Error opening settings panel:', e);
+        alert('Error opening settings panel. Please check browser console for details.');
+    }
+}
+
+function showBrowserModeNotification() {
+    // Create notification overlay
+    const notification = document.createElement('div');
+    notification.id = 'browser-mode-notification';
+    notification.innerHTML = `
+        <div style="
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(22, 33, 62, 0.95);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            max-width: 300px;
+            z-index: 10000;
+            transition: opacity 0.3s ease;
+        ">
+            <div style="font-weight: bold; margin-bottom: 8px;">🎨 Browser Mode Active</div>
+            <div style="margin-bottom: 10px; line-height: 1.4;">
+                Customize your Susuwatari experience:
+            </div>
+            <div style="font-size: 12px; color: #ccc; margin-bottom: 10px;">
+                • Right-click for settings<br>
+                • Press Ctrl+Shift+S<br>
+                • Settings saved locally
+            </div>
+            <button onclick="openSettingsPanel()" style="
+                background: #4CAF50;
+                color: white;
+                border: none;
+                padding: 8px 12px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 12px;
+                margin-right: 8px;
+            ">Open Settings</button>
+            <button onclick="this.parentElement.parentElement.remove()" style="
+                background: rgba(255, 255, 255, 0.1);
+                color: white;
+                border: none;
+                padding: 8px 12px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 12px;
+            ">Dismiss</button>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    // Auto-hide after 10 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.style.opacity = '0';
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 300);
+        }
+    }, 10000);
+}
+
+// Make openSettingsPanel and audio functions globally available
+window.openSettingsPanel = openSettingsPanel;
+window.setupBrowserAudio = setupBrowserAudio;
+window.cleanupBrowserAudio = cleanupBrowserAudio;
+
+// Expose browser audio status
+Object.defineProperty(window, 'browserAudioInitialized', {
+    get: function () { return browserAudioInitialized; }
+});
 
 // Exportar para compatibilidade
 if (typeof module !== 'undefined' && module.exports) {

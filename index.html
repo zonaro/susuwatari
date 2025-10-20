@@ -5,110 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Susuwatari Wallpaper - Soot Sprites</title>
+    <meta name="description"
+        content="Interactive Susuwatari (soot sprites) wallpaper compatible with Wallpaper Engine and Lively Wallpaper">
+    <meta name="author" content="Zonaro">
+    <meta name="keywords" content="wallpaper, interactive, susuwatari, soot sprites, ghibli, anime, audio-reactive">
 
-    <!-- Wallpaper Engine Properties -->
-    <!--  
-    <script type="application/json" id="wallpaper-properties">
-    {
-        "susuwatari_size": {
-            "order": 100,
-            "text": "Initial Susuwatari Size",
-            "type": "slider",
-            "value": 18,
-            "min": 10,
-            "max": 150
-        },
-        "susuwatari_count": {
-            "order": 200,
-            "text": "Initial Susuwatari Count",
-            "type": "slider",
-            "value": 100,
-            "min": 1,
-            "max": 150
-        },
-        "flee_distance": {
-            "order": 300,
-            "text": "Mouse Detection Distance",
-            "type": "slider",
-            "value": 80,
-            "min": 10,
-            "max": 100
-        },
-        "flee_acceleration": {
-            "order": 400,
-            "text": "Flee Acceleration",
-            "type": "slider",
-            "value": 4.0,
-            "min": 1.0,
-            "max": 8.0,
-            "step": 0.1
-        },
-        "audio_intensity": {
-            "order": 500,
-            "text": "Audio Reactivity Intensity",
-            "type": "slider",
-            "value": 1.0,
-            "min": 0.0,
-            "max": 3.0,
-            "step": 0.1
-        },
-        "bass_pulse_intensity": {
-            "order": 600,
-            "text": "Bass Pulse Intensity",
-            "type": "slider",
-            "value": 1.0,
-            "min": 0.0,
-            "max": 3.0,
-            "step": 0.1
-        },
-        "audio_visualization_enabled": {
-            "order": 700,
-            "text": "Audio Visualization",
-            "type": "bool",
-            "value": true
-        },
-        "max_run_distance": {
-            "order": 800,
-            "text": "Max Run Distance Before Tired",
-            "type": "slider",
-            "value": 300,
-            "min": 100,
-            "max": 800,
-            "step": 10
-        },
-        "sleep_time": {
-            "order": 900,
-            "text": "Sleep Time (seconds)",
-            "type": "slider",
-            "value": 10,
-            "min": 3,
-            "max": 60,
-            "step": 1
-        },
-        "sleep_enabled": {
-            "order": 950,
-            "text": "Enable Sleep System",
-            "type": "bool",
-            "value": true
-        },
-        "rest_timeout": {
-            "order": 1000,
-            "text": "Rest Timeout When Dizzy (seconds)",
-            "type": "slider",
-            "value": 5,
-            "min": 2,
-            "max": 15,
-            "step": 1
-        },
-        "background_image": {
-            "order": 1100,
-            "text": "Background Image",
-            "type": "file",
-            "value": "",
-            "fileType": "image"
-        }
-    }
-    </script> -->
+    <!-- Compatible with both Wallpaper Engine and Lively Wallpaper -->
+    <!-- Wallpaper Engine: Uses project.json for properties and wallpaperPropertyListener -->
+    <!-- Lively Wallpaper: Uses LivelyProperties.json and livelyPropertyListener -->
+    <!-- Web Browser: Uses browser-settings.html popup panel with localStorage persistence -->
+
+
 
     <style>
         body {
@@ -130,20 +37,6 @@
         #susuwatari-canvas {
             display: block;
             cursor: default;
-        }
-
-        .ui-info {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            color: rgba(255, 255, 255, 0.7);
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-            pointer-events: none;
-            z-index: 1000;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-            display: none;
-            /* Starts hidden */
         }
     </style>
 </head>
