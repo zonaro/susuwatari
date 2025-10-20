@@ -1909,7 +1909,13 @@ function livelyPropertyListener(name, val) {
     }
 }
 
-// Detect wallpaper engine and initialize accordingly
+
+
+function livelyAudioListener(audioArray) {
+    if (susuwatariInstance) {
+        susuwatariInstance.wallpaperAudioListener(audioArray);
+    }
+}
 
 // Initialize the wallpaper
 document.addEventListener('DOMContentLoaded', function () {
@@ -1933,29 +1939,6 @@ document.addEventListener('DOMContentLoaded', function () {
             window.wallpaperRegisterAudioListener(wallpaperAudioListener);
         } catch (e) {
             console.warn('Failed to register Wallpaper Engine audio listener:', e);
-        }
-    } else if (isLivelyWallpaper) {
-        console.log('Initializing for Lively Wallpaper...');
-        // Lively Wallpaper audio handling (if available)
-        if (typeof window.livelyAudioListener !== 'undefined') {
-            // Override livelyAudioListener if it exists
-            const originalLivelyAudioListener = window.livelyAudioListener;
-            window.livelyAudioListener = function (audioArray) {
-                if (susuwatariInstance) {
-                    susuwatariInstance.wallpaperAudioListener(audioArray);
-                }
-                // Call original if it existed
-                if (originalLivelyAudioListener && typeof originalLivelyAudioListener === 'function') {
-                    originalLivelyAudioListener(audioArray);
-                }
-            };
-        } else {
-            // Define livelyAudioListener for Lively Wallpaper
-            window.livelyAudioListener = function (audioArray) {
-                if (susuwatariInstance) {
-                    susuwatariInstance.wallpaperAudioListener(audioArray);
-                }
-            };
         }
     } else {
         console.log('Running in standard web browser mode');

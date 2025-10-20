@@ -52,46 +52,7 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 - **Custom Background Images**: Upload your own wallpaper images to personalize the experience
 - **Default Gradient**: Beautiful default blue gradient when no image is set
 
-### Customizable Properties (Wallpaper Engine)
-
-#### Initial Susuwatari Size
-- **Type**: Slider
-- **Range**: 10 - 150 pixels
-- **Default**: 18 pixels
-- **Description**: Sets the base size of Susuwatari when loading
-
-#### Initial Susuwatari Count
-- **Type**: Slider
-- **Range**: 1 - 150 particles
-- **Default**: 100 particles
-- **Description**: Number of Susuwatari on screen initially
-
-#### Mouse Detection Distance
-- **Type**: Slider
-- **Range**: 10 - 100 pixels
-- **Default**: 80 pixels
-- **Description**: Distance at which Susuwatari start fleeing from cursor
-
-#### Flee Acceleration
-- **Type**: Slider
-- **Range**: 1.0 - 8.0x
-- **Default**: 4.0x
-- **Description**: Maximum acceleration speed when fleeing
-
-## Configuration
-
-### Wallpaper Engine
-Configuration is done through the **Customize** menu (right-click on wallpaper in gallery):
-- Properties are defined in `project.json`
-- Real-time updates through wallpaperPropertyListener
-- Audio processing through wallpaperRegisterAudioListener
-
-### Lively Wallpaper
-Configuration is done through the **Customize** menu (right-click on wallpaper):
-- Properties are defined in `LivelyProperties.json`
-- Real-time updates through livelyPropertyListener
-- Audio processing through livelyAudioListener
-
+  
 ## Customizable Properties
 
 #### Initial Susuwatari Size
@@ -183,11 +144,9 @@ Configuration is done through the **Customize** menu (right-click on wallpaper):
 5. Right-click the wallpaper → Customize to access properties
 
 ### Web Browser (Any Modern Browser)
-1. Download the project files
-2. Open `index.html` in any modern web browser (Chrome, Firefox, Safari, Edge)
-3. **Right-click anywhere** or press **Ctrl+Shift+S** to open the settings panel
-4. Customize all properties through the popup settings interface
-5. Settings are automatically saved to your browser's local storage
+1. Navigate to http://zonaro.github.io/susuwatari
+2. Right-click to open settings menu
+ 
 
 #### Browser Mode Features:
 - 🎛️ **Complete Settings Panel**: Full access to all Susuwatari properties
@@ -199,20 +158,7 @@ Configuration is done through the **Customize** menu (right-click on wallpaper):
 - 📱 **Responsive Interface**: Settings panel adapts to different screen sizes
 - ⚡ **Real-time Controls**: Audio enable/disable with instant visual feedback
 
-## Project Structure
-
-```
-├── index.html              # Main HTML file (entry point)
-├── susuwatari.js          # Main JavaScript logic with triple compatibility
-├── browser-settings.html  # Web browser settings panel interface
-├── project.json           # Wallpaper Engine configuration
-├── LivelyProperties.json  # Lively Wallpaper properties
-├── LivelyInfo.json       # Lively Wallpaper metadata
-├── compatibility-test.html # Cross-platform compatibility testing tool
-├── preview.gif           # Preview animation
-└── README.md            # This documentation
-```
-
+ 
 ## Technical Implementation
 
 ### Triple Compatibility System
@@ -250,7 +196,7 @@ The wallpaper automatically detects which platform is running:
 ### Platform-Specific Controls:
 **Wallpaper Engine & Lively Wallpaper:**
 ```
-🖱️ Right Click: Access settings through wallpaper software
+Access settings through wallpaper software
 ```
 
 **Web Browser Mode:**
@@ -272,7 +218,7 @@ The wallpaper automatically detects which platform is running:
 ## Background Customization Tips *(Wallpaper Engine only)*
 
 - **For best results with custom images**: Use high-resolution images that look good with moving particles
-- **Dark backgrounds recommended**: Choose darker images to ensure Susuwatari remain visible
+- **Light backgrounds recommended**: Choose lighter images to ensure Susuwatari remain visible
 - **Image formats supported**: JPEG, PNG, BMP, GIF, SVG, WebP
 - **Default gradient**: Beautiful blue gradient is used when no custom image is selected
 
