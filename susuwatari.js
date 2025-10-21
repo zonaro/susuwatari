@@ -786,12 +786,12 @@ class SusuwatariCanvas {
     }
 
     createCollectible(x, y, type) {
-        // Randomly choose between coal stone (33%), colored star (33%), or shoe (33%)
+        // Randomly choose between coal stone (40%), colored star (40%), or shoe (20%)
         if (type === undefined) {
             const rand = Math.random();
-            if (rand < 0.20) {
+            if (rand <= 0.20) {
                 type = 'shoe';
-            } else if (rand < 0.50) {
+            } else if (rand <= 0.60) {
                 type = 'star';
             } else {
                 type = 'coal';
