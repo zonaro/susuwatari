@@ -290,20 +290,20 @@ class SusuwatariCanvas {
         }
 
         // Background image property: Local files via FilePicker/FolderDropdown, URLs only via text input
-        if (properties.background_image || properties.background_image_picker || properties.backgroundImagePicker || properties.background_image_url) {
+        if (properties.background_image || properties.background_image_picker || properties.backgroundImagePicker || properties.background_image) {
             console.log('Processing background properties:', {
                 background_image: properties.background_image,
                 background_image_picker: properties.background_image_picker,
                 backgroundImagePicker: properties.backgroundImagePicker,
-                background_image_url: properties.background_image_url
+                background_image: properties.background_image
             });
 
             let imageValue = '';
             let isFileSource = false; // Track if image comes from file picker vs URL input       
 
             // Priority 0: Check if we already have a base64 data URL (backgroundImageUrl)
-            if (properties.background_image_url && properties.background_image_url.value && properties.background_image_url.value.trim() !== '') {
-                const dataURLValue = properties.background_image_url.value.trim();
+            if (properties.background_image && properties.background_image.value && properties.background_image.value.trim() !== '') {
+                const dataURLValue = properties.background_image.value.trim();
                 if (dataURLValue.startsWith('data:')) {
                     console.log('Using existing base64 data URL from backgroundImageUrl property');
                     document.body.style.backgroundImage = `url('${dataURLValue}')`;
@@ -2067,7 +2067,7 @@ function livelyPropertyListener(name, val) {
         'sleepTime': 'sleep_time',
         'sleepEnabled': 'sleep_enabled',
         'restTimeout': 'rest_timeout',
-        'backgroundImageUrl': 'background_image_url',
+        'backgroundImageUrl': 'background_image',
         'backgroundImagePicker': 'background_image_picker'
     };
 
@@ -2566,7 +2566,7 @@ function applyBrowserSettings(settings) {
         'sleepTime': 'sleep_time',
         'sleepEnabled': 'sleep_enabled',
         'restTimeout': 'rest_timeout',
-        'backgroundImageUrl': 'background_image_url'
+        'backgroundImageUrl': 'background_image'
     };
 
     Object.keys(settings).forEach(key => {
