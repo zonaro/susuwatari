@@ -277,7 +277,7 @@ class SusuwatariCanvas {
                         console.log('Using existing file URL:', imageUrl);
                     } else if (isLivelyWallpaper) {
                         // Lively Wallpaper folder dropdown uses relative paths - no file:// prefix needed
-                        imageUrl = imageValue;
+                        imageUrl = location.href + '/' + imageValue;
                         console.log('Using Lively folder dropdown relative path:', imageUrl);
                     } else {
                         // Convert Wallpaper Engine absolute file path to file URL
