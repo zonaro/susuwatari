@@ -1946,15 +1946,8 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log('- Lively Wallpaper:', isLivelyWallpaper);
     console.log('- Browser Mode:', isBrowserMode);
 
-    const overlay = document.getElementById('browser-download-overlay');
-
     // Initialize audio for the detected engine
     if (isWallpaperEngine) {
-        if (overlay) {
-            overlay.remove();
-        }
-
-
         console.log('Initializing for Wallpaper Engine...');
         // Register the audio listener with Wallpaper Engine
         try {
@@ -1968,15 +1961,12 @@ document.addEventListener('DOMContentLoaded', function () {
         initializeBrowserMode();
         // Initialize Web Audio API for browser mode
         initializeBrowserAudio();
-
-        if (overlay) {
-            overlay.style.display = 'flex';
-        }
+        // Pre-load JSZip for download functionality
+        loadJSZip().catch(error => {
+            console.warn('Failed to pre-load JSZip:', error);
+        });
 
     } else {
-        if (overlay) {
-            overlay.remove();
-        }
         window.livelyAudioListener = function (audioArray) {
             if (susuwatariInstance) {
                 susuwatariInstance.wallpaperAudioListener(audioArray);
@@ -2006,12 +1996,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-function hideBrowserOverlay() {
-    const overlay = document.getElementById('browser-download-overlay');
-    if (overlay) {
-        overlay.style.display = 'none';
-    }
-}
+
 
 
 // Browser Audio Functions using Web Audio API
@@ -2258,6 +2243,36 @@ function cleanupBrowserAudio() {
 // Add cleanup on page unload
 window.addEventListener('beforeunload', cleanupBrowserAudio);
 
+// Dynamic JSZip loader for browser mode
+async function loadJSZip() {
+    return new Promise((resolve, reject) => {
+        // Check if JSZip is already loaded
+        if (typeof JSZip !== 'undefined') {
+            console.log('JSZip already loaded');
+            resolve(JSZip);
+            return;
+        }
+
+        console.log('Loading JSZip dynamically for browser mode...');
+
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+        script.async = true;
+
+        script.onload = () => {
+            console.log('JSZip loaded successfully');
+            resolve(JSZip);
+        };
+
+        script.onerror = () => {
+            console.error('Failed to load JSZip');
+            reject(new Error('Failed to load JSZip library'));
+        };
+
+        document.head.appendChild(script);
+    });
+}
+
 // Browser Mode Functions
 function initializeBrowserMode() {
     console.log('Initializing browser mode with settings panel support...');
@@ -2386,7 +2401,7 @@ function openSettingsPanel() {
 }
 
 function showBrowserModeNotification() {
-    // Create notification overlay
+    // Create notification overlay with download options
     const notification = document.createElement('div');
     notification.id = 'browser-mode-notification';
     notification.innerHTML = `
@@ -2396,50 +2411,190 @@ function showBrowserModeNotification() {
             right: 20px;
             background: rgba(22, 33, 62, 0.95);
             color: white;
-            padding: 15px 20px;
+            padding: 20px;
             border-radius: 8px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             font-family: Arial, sans-serif;
             font-size: 14px;
-            max-width: 300px;
+            max-width: 350px;
             z-index: 10000;
             transition: opacity 0.3s ease;
         ">
-            <div style="font-weight: bold; margin-bottom: 8px;">🎨 Browser Mode Active</div>
-            <div style="margin-bottom: 10px; line-height: 1.4;">
-                Customize your Susuwatari experience:
+            <div style="font-weight: bold; margin-bottom: 12px; font-size: 16px;">�️ Susuwatari Wallpaper</div>
+            
+            <div style="margin-bottom: 15px; line-height: 1.4; color: #e0e0e0;">
+                Interactive soot sprites that react to your mouse and audio!
             </div>
-            <div style="font-size: 12px; color: #ccc; margin-bottom: 10px;">
-                • Right-click for settings<br>
-                • Press Ctrl+Shift+S<br>
-                • Settings saved locally
+
+            <div style="margin-bottom: 15px;">
+                <div style="font-weight: bold; margin-bottom: 8px; color: #4CAF50;">📥 Download Options:</div>
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
+                    <a href="steam://url/CommunityFilePage/3587855531" style="
+                        background: #4CAF50;
+                        color: white;
+                        text-decoration: none;
+                        padding: 10px 15px;
+                        border-radius: 4px;
+                        font-size: 12px;
+                        text-align: center;
+                        transition: background-color 0.2s ease;
+                    " onmouseover="this.style.background='#45a049'" onmouseout="this.style.background='#4CAF50'">
+                        🎮 Steam Workshop - Wallpaper Engine
+                    </a>
+                    <button id="downloadSusuwatariBtn" style="
+                        background: #2196F3;
+                        color: white;
+                        border: none;
+                        padding: 10px 15px;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 12px;
+                        transition: background-color 0.2s ease;
+                    " onmouseover="this.style.background='#1976D2'" onmouseout="this.style.background='#2196F3'">
+                        📦 Download ZIP - Lively Wallpaper
+                    </button>
+                </div>
             </div>
-            <button onclick="openSettingsPanel()" style="
-                background: #4CAF50;
-                color: white;
-                border: none;
-                padding: 8px 12px;
+
+            <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 12px; margin-top: 12px;">
+                <div style="font-weight: bold; margin-bottom: 8px; color: #4CAF50;">⚙️ Customization:</div>
+                <div style="font-size: 12px; color: #ccc; margin-bottom: 10px;">
+                    • Right-click for settings<br>
+                    • Press Ctrl+Shift+S<br>
+                    • Settings saved locally
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="openSettingsPanel()" style="
+                        background: #4CAF50;
+                        color: white;
+                        border: none;
+                        padding: 8px 12px;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 12px;
+                        flex: 1;
+                    ">Open Settings</button>
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" style="
+                        background: rgba(255, 255, 255, 0.1);
+                        color: white;
+                        border: none;
+                        padding: 8px 12px;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 12px;
+                        flex: 1;
+                    ">Dismiss</button>
+                </div>
+            </div>
+
+            <div id="download-status" style="
+                display: none;
+                background: rgba(15, 52, 96, 0.4);
                 border-radius: 4px;
-                cursor: pointer;
-                font-size: 12px;
-                margin-right: 8px;
-            ">Open Settings</button>
-            <button onclick="this.parentElement.parentElement.remove()" style="
-                background: rgba(255, 255, 255, 0.1);
-                color: white;
-                border: none;
-                padding: 8px 12px;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 12px;
-            ">Dismiss</button>
+                padding: 10px;
+                margin-top: 10px;
+                font-family: monospace;
+                font-size: 11px;
+                max-height: 150px;
+                overflow-y: auto;
+                white-space: pre-wrap;
+                line-height: 1.2;
+            "></div>
         </div>
     `;
 
     document.body.appendChild(notification);
 
-    // Auto-hide after 10 seconds
+    // Add download functionality
+    const downloadBtn = notification.querySelector('#downloadSusuwatariBtn');
+    const statusDiv = notification.querySelector('#download-status');
+
+    downloadBtn.addEventListener('click', async function () {
+        try {
+            statusDiv.style.display = 'block';
+            statusDiv.textContent = '';
+
+            function addLine(msg) {
+                statusDiv.textContent += msg + '\\n';
+            }
+
+            downloadBtn.disabled = true;
+            downloadBtn.textContent = '⏳ Loading libraries...';
+            addLine('🚀 Starting Susuwatari files download...\\n');
+
+            // Load JSZip dynamically
+            addLine('📚 Loading JSZip library...');
+            const JSZip = await loadJSZip();
+            addLine('✅ JSZip library loaded successfully');
+
+            const files = [
+                { name: 'LivelyInfo.json', desc: 'Lively Wallpaper metadata' },
+                { name: 'LivelyProperties.json', desc: 'Configurable properties' },
+                { name: 'index.html', desc: 'Main interface' },
+                { name: 'susuwatari.js', desc: 'Animation engine' }
+            ];
+
+            downloadBtn.textContent = '⏳ Preparing download...';
+            const zip = new JSZip();
+            let success = 0;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                addLine(`📁 Loading [${i + 1}/${files.length}]: ${file.name}`);
+
+                try {
+                    const response = await fetch(file.name);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status} for ${file.name}`);
+                    }
+                    const buffer = await response.arrayBuffer();
+                    zip.file(file.name, new Uint8Array(buffer));
+                    addLine(`✅ Added: ${file.name} - ${file.desc}`);
+                    success++;
+                } catch (err) {
+                    addLine(`❌ Error: ${file.name} - ${err.message}`);
+                }
+            }
+
+            if (success === 0) {
+                addLine('\\n❌ No files were added. Please check if the files are in the correct directory.');
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = '📦 Download ZIP - Lively Wallpaper';
+                return;
+            }
+
+            addLine('\\n📦 Creating ZIP file...');
+
+            const blob = await zip.generateAsync({
+                type: 'blob',
+                compression: 'DEFLATE',
+                compressionOptions: { level: 6 }
+            });
+
+            const a = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            a.href = url;
+            a.download = 'Susuwatari.zip';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+
+            addLine(`\\n🎉 Download started: ${a.download}`);
+            addLine(`📊 Total files: ${success}/${files.length}`);
+            addLine('\\n✨ Ready! Now you can install Susuwatari on Lively Wallpaper!');
+
+        } catch (error) {
+            console.error('Download error:', error);
+            statusDiv.textContent += `\\n❌ Error: ${error.message}`;
+        } finally {
+            downloadBtn.disabled = false;
+            downloadBtn.textContent = '📦 Download ZIP - Lively Wallpaper';
+        }
+    });
+
+    // Auto-hide after 15 seconds
     setTimeout(() => {
         if (notification.parentElement) {
             notification.style.opacity = '0';
@@ -2449,7 +2604,7 @@ function showBrowserModeNotification() {
                 }
             }, 300);
         }
-    }, 10000);
+    }, 15000);
 }
 
 // Make openSettingsPanel and audio functions globally available
