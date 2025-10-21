@@ -234,11 +234,13 @@ class SusuwatariCanvas {
 
             let imageValue = '';
             let isFileSource = false; // Track if image comes from file picker vs URL input
+            let isLivelyFolderDropdown = false; // Track if it's specifically from Lively folder dropdown
 
             // Priority 1: Check if user used the Lively folder dropdown (backgroundImagePicker)
             if (properties.backgroundImagePicker && properties.backgroundImagePicker.value && properties.backgroundImagePicker.value.trim() !== '') {
                 imageValue = properties.backgroundImagePicker.value;
                 isFileSource = true;
+                isLivelyFolderDropdown = true;
                 // For Lively Wallpaper folder dropdown, prepend the backgrounds folder path
                 if (!imageValue.includes('/') && !imageValue.includes('\\')) {
                     imageValue = `backgrounds/${imageValue}`;
@@ -249,6 +251,7 @@ class SusuwatariCanvas {
             else if (properties.background_image_picker && properties.background_image_picker.value && properties.background_image_picker.value.trim() !== '') {
                 imageValue = properties.background_image_picker.value;
                 isFileSource = true;
+                isLivelyFolderDropdown = false;
                 console.log('Using Wallpaper Engine file picker image:', imageValue);
             }
             // Priority 3: Otherwise use the text input value (URL only)
@@ -273,10 +276,14 @@ class SusuwatariCanvas {
                         // Already a file URL
                         imageUrl = imageValue;
                         console.log('Using existing file URL:', imageUrl);
+                    } else if (isLivelyFolderDropdown) {
+                        // Lively Wallpaper folder dropdown uses relative paths - no file:// prefix needed
+                        imageUrl = imageValue;
+                        console.log('Using Lively folder dropdown relative path:', imageUrl);
                     } else {
-                        // Convert local file path to file URL (from Wallpaper Engine or Lively folder dropdown)
+                        // Convert Wallpaper Engine absolute file path to file URL
                         imageUrl = 'file:///' + imageValue.replace(/\\/g, '/');
-                        console.log('Converted file path to URL:', imageValue, '->', imageUrl);
+                        console.log('Converted Wallpaper Engine file path to URL:', imageValue, '->', imageUrl);
                     }
                 } else {
                     // Handle URLs from text input (already validated to be http:// or https://)
