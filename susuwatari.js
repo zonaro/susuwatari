@@ -153,6 +153,8 @@ class SusuwatariCanvas {
 
     // Function to handle Wallpaper Engine properties
     applyUserProperties(properties) {
+        console.log('SusuwatariCanvas.applyUserProperties called with:', Object.keys(properties));
+
         if (properties.susuwatari_size) {
             this.particleSize = properties.susuwatari_size.value;
             // Update size of all existing Susuwatari
@@ -222,13 +224,21 @@ class SusuwatariCanvas {
             this.restTimeout = properties.rest_timeout.value;
         }
 
-        // Background image property (supports both Wallpaper Engine file paths and Lively Wallpaper URLs/paths)
+        // Background image property: Local files via FilePicker/FolderDropdown, URLs only via text input
         if (properties.background_image || properties.background_image_picker || properties.backgroundImagePicker) {
+            console.log('Processing background properties:', {
+                background_image: properties.background_image,
+                background_image_picker: properties.background_image_picker,
+                backgroundImagePicker: properties.backgroundImagePicker
+            });
+
             let imageValue = '';
+            let isFileSource = false; // Track if image comes from file picker vs URL input
 
             // Priority 1: Check if user used the Lively folder dropdown (backgroundImagePicker)
             if (properties.backgroundImagePicker && properties.backgroundImagePicker.value && properties.backgroundImagePicker.value.trim() !== '') {
                 imageValue = properties.backgroundImagePicker.value;
+                isFileSource = true;
                 // For Lively Wallpaper folder dropdown, prepend the backgrounds folder path
                 if (!imageValue.includes('/') && !imageValue.includes('\\')) {
                     imageValue = `backgrounds/${imageValue}`;
@@ -238,41 +248,46 @@ class SusuwatariCanvas {
             // Priority 2: Check if user used the Wallpaper Engine file picker
             else if (properties.background_image_picker && properties.background_image_picker.value && properties.background_image_picker.value.trim() !== '') {
                 imageValue = properties.background_image_picker.value;
-
-                // Update the text input field with the selected file path (for Wallpaper Engine sync)
-                if (typeof window.wallpaperPropertyListener !== 'undefined') {
-                    // Set the text input to match the file picker selection
-                    setTimeout(() => {
-                        window.wallpaperPropertyListener.applyUserProperties({
-                            background_image: { value: imageValue }
-                        });
-                    }, 100);
-                }
+                isFileSource = true;
                 console.log('Using Wallpaper Engine file picker image:', imageValue);
             }
-            // Priority 3: Otherwise use the text input value
+            // Priority 3: Otherwise use the text input value (URL only)
             else if (properties.background_image && properties.background_image.value && properties.background_image.value.trim() !== '') {
-                imageValue = properties.background_image.value;
-                console.log('Using text input image:', imageValue);
+                const inputValue = properties.background_image.value.trim();
+                // Only accept URLs (http:// or https://) in the text input
+                if (inputValue.startsWith('http://') || inputValue.startsWith('https://')) {
+                    imageValue = inputValue;
+                    console.log('Using URL from text input:', imageValue);
+                } else {
+                    console.warn('Text input only accepts URLs (http:// or https://). For local files, use the file picker or folder dropdown. Ignoring:', inputValue);
+                    imageValue = '';
+                }
             }
 
             if (imageValue && imageValue.trim() !== '') {
                 let imageUrl;
 
-                // Check if it's already a URL (starts with http:// or https://)
-                if (imageValue.startsWith('http://') || imageValue.startsWith('https://')) {
-                    imageUrl = imageValue;
-                } else if (imageValue.startsWith('file://')) {
-                    // Already a file URL
-                    imageUrl = imageValue;
+                if (isFileSource) {
+                    // Handle file paths from file pickers and folder dropdowns
+                    if (imageValue.startsWith('file://')) {
+                        // Already a file URL
+                        imageUrl = imageValue;
+                        console.log('Using existing file URL:', imageUrl);
+                    } else {
+                        // Convert local file path to file URL (from Wallpaper Engine or Lively folder dropdown)
+                        imageUrl = 'file:///' + imageValue.replace(/\\/g, '/');
+                        console.log('Converted file path to URL:', imageValue, '->', imageUrl);
+                    }
                 } else {
-                    // Assume it's a local file path (from Wallpaper Engine or Lively with local path)
-                    imageUrl = 'file:///' + imageValue.replace(/\\/g, '/');
+                    // Handle URLs from text input (already validated to be http:// or https://)
+                    imageUrl = imageValue;
+                    console.log('Using web URL:', imageUrl);
                 }
 
+                console.log('Applying background image:', imageUrl);
                 document.body.style.backgroundImage = `url('${imageUrl}')`;
                 document.body.style.background = `url('${imageUrl}') center/cover no-repeat`;
-                console.log('Background image set:', imageUrl);
+                console.log('Background image successfully set:', imageUrl);
             } else {
                 // No image selected, use default gradient
                 document.body.style.backgroundImage = '';
@@ -1902,14 +1917,34 @@ function wallpaperAudioListener(audioArray) {
     }
 }
 
+// Queue for properties received before instance is ready
+let pendingProperties = [];
+
 // Global functions required for Wallpaper Engine
 window.wallpaperPropertyListener = {
     applyUserProperties: function (properties) {
+        console.log('Wallpaper Engine: Received properties:', properties);
         if (susuwatariInstance) {
             susuwatariInstance.applyUserProperties(properties);
+        } else {
+            console.warn('Wallpaper Engine: susuwatariInstance not ready yet, queuing properties');
+            pendingProperties.push(properties);
         }
     }
 };
+
+// Function to process queued properties
+function processPendingProperties() {
+    if (pendingProperties.length > 0) {
+        console.log('Processing', pendingProperties.length, 'pending properties');
+        pendingProperties.forEach(properties => {
+            if (susuwatariInstance) {
+                susuwatariInstance.applyUserProperties(properties);
+            }
+        });
+        pendingProperties = [];
+    }
+}
 
 // Global function required for Lively Wallpaper
 function livelyPropertyListener(name, val) {
@@ -1946,7 +1981,12 @@ function livelyPropertyListener(name, val) {
 
 // Initialize the wallpaper
 document.addEventListener('DOMContentLoaded', function () {
+    console.log('DOM Content Loaded - Initializing Susuwatari...');
     susuwatariInstance = new SusuwatariCanvas();
+    console.log('SusuwatariCanvas instance created');
+
+    // Process any properties that were received before the instance was ready
+    processPendingProperties();
 
     // Detect which wallpaper engine is running
     const isBrowserMode = this.location.href == 'https://zonaro.github.io/susuwatari/' || this.location.search.includes('browser=1');
@@ -1957,6 +1997,7 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log('- Wallpaper Engine:', isWallpaperEngine);
     console.log('- Lively Wallpaper:', isLivelyWallpaper);
     console.log('- Browser Mode:', isBrowserMode);
+    console.log('- wallpaperPropertyListener available:', typeof window.wallpaperPropertyListener !== 'undefined');
 
     // Initialize audio for the detected engine
     if (isWallpaperEngine) {

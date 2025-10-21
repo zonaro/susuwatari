@@ -88,10 +88,10 @@
         "help": "Time to rest when Susuwatari become dizzy from rapid mouse movement"
     },
     "backgroundImageUrl": {
-        "text": "Background Image URL/Path",
+        "text": "Background Image URL",
         "type": "textbox",
         "value": "",
-        "help": "Enter a URL or local file path to a background image (e.g., https://example.com/image.jpg or C:\\path\\to\\image.png)"
+        "help": "Enter a URL to a background image (e.g., https://example.com/image.jpg). For local files, use the Folder Dropdown (Lively) or FilePicker (Wallpaper Engine)"
     },
     "backgroundImagePicker": {
         "type": "folderDropdown",

@@ -103,10 +103,10 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 - **Default**: 5 seconds
 - **Description**: Time Susuwatari rest when they become dizzy from rapid mouse movement
 
-#### Background Image URL/Path 
+#### Background Image URL 
 - **Type**: Text Input
 - **Default**: Empty
-- **Description**: Enter a URL or local file path to a background image. Supports web URLs (https://example.com/image.jpg) and local file paths (C:\path\to\image.png). Uses the same image formats and scaling as Wallpaper Engine. When empty, uses the default blue gradient.
+- **Description**: Enter a URL to a background image (e.g., https://example.com/image.jpg). Only web URLs (http:// or https://) are accepted. For local files, use the FilePicker (Wallpaper Engine) or Folder Dropdown (Lively Wallpaper). When empty, uses the default blue gradient.
 
 #### Background Image File (Lively Wallpaper Only)
 - **Type**: Folder Dropdown with FilePicker
@@ -175,21 +175,21 @@ Access settings through wallpaper software
 ## Background Customization
 
 ### Wallpaper Engine:
-- **Text Input Field**: Enter any URL (http://, https://) or local file path directly
-- **Browse Button**: Use the file picker to select local images (automatically fills the text field)
-- **Dual Options**: Both methods work together - file picker updates the text field for easy editing
+- **Text Input Field**: Enter image URLs (http://, https://) only
+- **Browse Button**: Use the file picker to select local images (does not affect the text field)
+- **Separate Controls**: URL field for web images, file picker for local files
 
 ### Lively Wallpaper:
 - **Folder Dropdown**: Select images from the `backgrounds/` folder with visual preview
 - **FilePicker Integration**: Add new images directly through the folder dropdown interface
-- **URL/Path Input**: Alternative text input for direct URLs or file paths
+- **URL Input**: Alternative text input for web image URLs only (http://, https://)
 - **Automatic Scanning**: The dropdown automatically scans the backgrounds folder for supported images
-- **Priority System**: Folder dropdown takes priority over URL/Path input when both are set
+- **Priority System**: Folder dropdown takes priority over URL input when both are set
 
 ### All Platforms:
 - **Supported Formats**: JPEG, PNG, BMP, GIF, SVG, WebP
-- **URL Support**: Direct links to online images (https://example.com/image.jpg)
-- **Local Files**: Full file paths (C:\path\to\image.jpg or /path/to/image.jpg)
+- **URL Support**: Direct links to online images (https://example.com/image.jpg) via text input
+- **Local Files**: Via file pickers and folder dropdown only (no manual path input)
 - **Default Gradient**: Beautiful blue gradient when no image is specified
 
 ### How to Add Custom Backgrounds (Lively Wallpaper):
@@ -203,6 +203,7 @@ Access settings through wallpaper software
 - **Dark backgrounds preferred**: Ensure Susuwatari remain visible against the background
 - **Online images**: Must be accessible via direct URL (some sites block hotlinking)
 - **Organization**: Use descriptive filenames for easier selection in dropdown
+- **URL validation**: Text input only accepts valid web URLs (http://, https://)
 
 ## Technologies Used
 
