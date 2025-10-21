@@ -355,7 +355,7 @@ class SusuwatariCanvas {
                     console.log('Debug: isWallpaperEngine =', typeof isWallpaperEngine !== 'undefined' ? isWallpaperEngine : 'undefined');
                     console.log('Debug: isLivelyWallpaper =', typeof isLivelyWallpaper !== 'undefined' ? isLivelyWallpaper : 'undefined');
 
-                    if (isWallpaperEngine) {
+                    if (isWallpaperEngine || isLivelyWallpaper) {
                         // Wallpaper Engine: Use file path directly with file:/// prefix
                         console.log('Wallpaper Engine: Using file path directly:', imageValue);
 
