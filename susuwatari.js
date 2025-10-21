@@ -233,8 +233,7 @@ class SusuwatariCanvas {
             });
 
             let imageValue = '';
-            let isFileSource = false; // Track if image comes from file picker vs URL input
-            let isLivelyFolderDropdown = false; // Track if it's specifically from Lively folder dropdown
+            let isFileSource = false; // Track if image comes from file picker vs URL input       
 
             // Priority 1: Check if user used the Lively folder dropdown (backgroundImagePicker)
             if (properties.backgroundImagePicker && properties.backgroundImagePicker.value && properties.backgroundImagePicker.value.trim() !== '') {
