@@ -240,7 +240,7 @@ class SusuwatariCanvas {
             if (properties.backgroundImagePicker && properties.backgroundImagePicker.value && properties.backgroundImagePicker.value.trim() !== '') {
                 imageValue = properties.backgroundImagePicker.value;
                 isFileSource = true;
-                isLivelyFolderDropdown = true;
+
                 // For Lively Wallpaper folder dropdown, prepend the backgrounds folder path
                 if (!imageValue.includes('/') && !imageValue.includes('\\')) {
                     imageValue = `backgrounds/${imageValue}`;
@@ -251,7 +251,6 @@ class SusuwatariCanvas {
             else if (properties.background_image_picker && properties.background_image_picker.value && properties.background_image_picker.value.trim() !== '') {
                 imageValue = properties.background_image_picker.value;
                 isFileSource = true;
-                isLivelyFolderDropdown = false;
                 console.log('Using Wallpaper Engine file picker image:', imageValue);
             }
             // Priority 3: Otherwise use the text input value (URL only)
@@ -276,7 +275,7 @@ class SusuwatariCanvas {
                         // Already a file URL
                         imageUrl = imageValue;
                         console.log('Using existing file URL:', imageUrl);
-                    } else if (isLivelyFolderDropdown) {
+                    } else if (isLivelyWallpaper) {
                         // Lively Wallpaper folder dropdown uses relative paths - no file:// prefix needed
                         imageUrl = imageValue;
                         console.log('Using Lively folder dropdown relative path:', imageUrl);
@@ -1983,7 +1982,9 @@ function livelyPropertyListener(name, val) {
     }
 }
 
-
+let isBrowserMode = false;
+let isLivelyWallpaper = true;
+let isWallpaperEngine = false;
 
 
 // Initialize the wallpaper
@@ -1996,15 +1997,14 @@ document.addEventListener('DOMContentLoaded', function () {
     processPendingProperties();
 
     // Detect which wallpaper engine is running
-    const isBrowserMode = this.location.href == 'https://zonaro.github.io/susuwatari/' || this.location.search.includes('browser=1');
-    const isWallpaperEngine = typeof window.wallpaperRegisterAudioListener !== 'undefined';
-    const isLivelyWallpaper = !isBrowserMode && !isWallpaperEngine;
+    isBrowserMode = this.location.href == 'https://zonaro.github.io/susuwatari/' || this.location.search.includes('browser=1');
+    isWallpaperEngine = typeof window.wallpaperRegisterAudioListener !== 'undefined';
+    isLivelyWallpaper = !isBrowserMode && !isWallpaperEngine;
 
     console.log('Wallpaper Engine Detection:');
     console.log('- Wallpaper Engine:', isWallpaperEngine);
     console.log('- Lively Wallpaper:', isLivelyWallpaper);
-    console.log('- Browser Mode:', isBrowserMode);
-    console.log('- wallpaperPropertyListener available:', typeof window.wallpaperPropertyListener !== 'undefined');
+    console.log('- Browser Mode:', isBrowserMode);   
 
     // Initialize audio for the detected engine
     if (isWallpaperEngine) {
