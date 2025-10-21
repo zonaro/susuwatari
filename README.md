@@ -108,10 +108,9 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 - **Default**: Empty
 - **Description**: Enter a URL to a background image (e.g., https://example.com/image.jpg). Only web URLs (http:// or https://) are accepted. For local files, use the FilePicker (Wallpaper Engine) or Folder Dropdown (Lively Wallpaper). When empty, uses the default blue gradient.
 
-#### Background Image File (Lively Wallpaper Only)
-- **Type**: Folder Dropdown with FilePicker
+#### Background Image File
+- **Type**: FilePicker
 - **Default**: None
-- **Folder**: backgrounds/
 - **Supported Formats**: JPG, PNG, JPEG, GIF, BMP, WebP
 - **Description**: Select a background image from the backgrounds folder or use the file picker to add new images. This control automatically scans the backgrounds folder and provides easy access to your custom images. Has higher priority than the URL/Path input when both are set.
 
@@ -122,7 +121,7 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 2. Apply the wallpaper from Wallpaper Engine's interface
 
 ### Lively Wallpaper (Free Alternative)
-1. [Download](https://zonaro.github.io/download)
+1. [Download](https://zonaro.github.io/susuwatari)
 2. Open Lively Wallpaper
 3. Click "Add Wallpaper" → "Browse" → Select the .zip file
 
@@ -176,7 +175,7 @@ Access settings through wallpaper software
 
 ### Wallpaper Engine:
 - **Text Input Field**: Enter image URLs (http://, https://) only
-- **Browse Button**: Use the file picker to select local images (does not affect the text field)
+- **Browse Button**: Use the file picker to select local images
 - **Separate Controls**: URL field for web images, file picker for local files
 
 ### Lively Wallpaper:
@@ -200,7 +199,7 @@ Access settings through wallpaper software
 
 ### Tips:
 - **High-resolution recommended**: Images look better with moving particles
-- **Dark backgrounds preferred**: Ensure Susuwatari remain visible against the background
+- **Light backgrounds preferred**: Ensure Susuwatari remain visible against the background
 - **Online images**: Must be accessible via direct URL (some sites block hotlinking)
 - **Organization**: Use descriptive filenames for easier selection in dropdown
 - **URL validation**: Text input only accepts valid web URLs (http://, https://)
