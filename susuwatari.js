@@ -2485,7 +2485,7 @@ function showBrowserModeNotification() {
             z-index: 10000;
             transition: opacity 0.3s ease;
         ">
-            <div style="font-weight: bold; margin-bottom: 12px; font-size: 16px;">�️ Susuwatari Wallpaper</div>
+            <div style="font-weight: bold; margin-bottom: 12px; font-size: 16px;">Susuwatari Wallpaper</div>
             
             <div style="margin-bottom: 15px; line-height: 1.4; color: #e0e0e0;">
                 Interactive soot sprites that react to your mouse and audio!
