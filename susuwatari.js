@@ -276,7 +276,9 @@ class SusuwatariCanvas {
                         console.log('Using existing file URL:', imageUrl);
                     } else if (isLivelyWallpaper) {
                         // Lively Wallpaper folder dropdown uses relative paths - no file:// prefix needed
-                        imageUrl = location.href + '/' + imageValue;
+                        // remove filename from location.href
+
+                        imageUrl = location.origin + '/' + imageValue;
                         console.log('Using Lively folder dropdown relative path:', imageUrl);
                     } else {
                         // Convert Wallpaper Engine absolute file path to file URL
@@ -1996,14 +1998,14 @@ document.addEventListener('DOMContentLoaded', function () {
     processPendingProperties();
 
     // Detect which wallpaper engine is running
-    isBrowserMode = this.location.href == 'https://zonaro.github.io/susuwatari/' || this.location.search.includes('browser=1');
+    isBrowserMode = this.location.href.startsWith('https://zonaro.github.io/susuwatari/') || this.location.search.includes('browser=1');
     isWallpaperEngine = typeof window.wallpaperRegisterAudioListener !== 'undefined';
     isLivelyWallpaper = !isBrowserMode && !isWallpaperEngine;
 
     console.log('Wallpaper Engine Detection:');
     console.log('- Wallpaper Engine:', isWallpaperEngine);
     console.log('- Lively Wallpaper:', isLivelyWallpaper);
-    console.log('- Browser Mode:', isBrowserMode);   
+    console.log('- Browser Mode:', isBrowserMode);
 
     // Initialize audio for the detected engine
     if (isWallpaperEngine) {
