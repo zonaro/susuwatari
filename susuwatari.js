@@ -337,60 +337,75 @@ class SusuwatariCanvas {
                 if (inputValue.startsWith('http://') || inputValue.startsWith('https://')) {
                     imageValue = inputValue;
                     console.log('Using URL from text input:', imageValue);
+                } else if (inputValue.startsWith('file:///') && isWallpaperEngine) {
+                    imageValue = inputValue;
+                    isFileSource = false;
+                    console.log('Using local file from text input (Wallpaper Engine):', imageValue);
                 } else {
+
                     console.warn('Text input only accepts URLs (http:// or https://). For local files, use the file picker or folder dropdown. Ignoring:', inputValue);
                     imageValue = '';
                 }
             }
 
             if (imageValue && imageValue.trim() !== '') {
+
                 if (isFileSource) {
-                    // Convert local file to base64 data URL and save to backgroundImageUrl property
-                    console.log('Converting local file to base64 data URL:', imageValue);
+                    // Check which wallpaper engine we're running on
+                    console.log('Debug: isWallpaperEngine =', typeof isWallpaperEngine !== 'undefined' ? isWallpaperEngine : 'undefined');
+                    console.log('Debug: isLivelyWallpaper =', typeof isLivelyWallpaper !== 'undefined' ? isLivelyWallpaper : 'undefined');
 
-                    this.fileToBase64DataURL(imageValue)
-                        .then(dataURL => {
-                            console.log('File successfully converted to base64, updating backgroundImageUrl property');
+                    if (typeof isWallpaperEngine !== 'undefined' && isWallpaperEngine) {
+                        // Wallpaper Engine: Use file path directly with file:/// prefix
+                        console.log('Wallpaper Engine: Using file path directly:', imageValue);
 
-                            // Update the backgroundImageUrl property with the base64 data
-                            this.updateBackgroundImageUrlProperty(dataURL);
+                        const fileUrl = 'file:///' + imageValue;
 
-                            // Apply the background immediately
-                            document.body.style.backgroundImage = `url('${dataURL}')`;
-                            document.body.style.background = `url('${dataURL}') center/cover no-repeat`;
-                            console.log('Background image successfully set from converted base64 data');
-                        })
-                        .catch(error => {
-                            console.error('Failed to convert file to base64:', error);
-                            // Fallback to original file path
-                            document.body.style.backgroundImage = `url('${imageValue}')`;
-                            document.body.style.background = `url('${imageValue}') center/cover no-repeat`;
-                            console.log('Using fallback file path for background:', imageValue);
-                        });
+                        // Apply the background immediately using file URL
+                        document.body.style.backgroundImage = `url('${fileUrl}')`;
+                        document.body.style.background = `url('${fileUrl}') center/cover no-repeat`;
+                        console.log('Background image successfully set from file path:', fileUrl);
+
+                        // Update backgroundImageUrl property with the file URL
+                        this.updateBackgroundImageUrlProperty(fileUrl);
+                    } else {
+                        // Lively Wallpaper: Convert local file to base64 data URL and save to backgroundImageUrl property
+                        console.log('Lively Wallpaper: Converting local file to base64 data URL:', imageValue);
+
+                        this.fileToBase64DataURL(imageValue)
+                            .then(dataURL => {
+                                console.log('File successfully converted to base64, updating backgroundImageUrl property');
+
+                                // Update the backgroundImageUrl property with the base64 data
+                                this.updateBackgroundImageUrlProperty(dataURL);
+
+                                // Apply the background immediately
+                                document.body.style.backgroundImage = `url('${dataURL}')`;
+                                document.body.style.background = `url('${dataURL}') center/cover no-repeat`;
+                                console.log('Background image successfully set from converted base64 data');
+                            })
+                            .catch(error => {
+                                alert('Error converting file to base64 data URL. Check console for details.');
+                                console.error('Failed to convert file to base64:', error);
+                                // Fallback to original file path
+                                document.body.style.backgroundImage = `url('${imageValue}')`;
+                                document.body.style.background = `url('${imageValue}') center/cover no-repeat`;
+                                console.log('Using fallback file path for background:', imageValue);
+                            });
+                    }
+
                 } else {
                     // Handle URLs from text input (already validated to be http:// or https://)
-                    // For URLs, we also convert to base64 for consistency
-                    console.log('Converting web URL to base64 data URL:', imageValue);
+                    // For URLs, always use direct URL (no base64 conversion needed)
+                    console.log('Using web URL directly:', imageValue);
 
-                    this.fileToBase64DataURL(imageValue)
-                        .then(dataURL => {
-                            console.log('Web URL successfully converted to base64, updating backgroundImageUrl property');
+                    // Apply the background immediately using URL
+                    document.body.style.backgroundImage = `url('${imageValue}')`;
+                    document.body.style.background = `url('${imageValue}') center/cover no-repeat`;
+                    console.log('Background image successfully set from web URL');
 
-                            // Update the backgroundImageUrl property with the base64 data
-                            this.updateBackgroundImageUrlProperty(dataURL);
-
-                            // Apply the background immediately
-                            document.body.style.backgroundImage = `url('${dataURL}')`;
-                            document.body.style.background = `url('${dataURL}') center/cover no-repeat`;
-                            console.log('Background image successfully set from converted base64 data');
-                        })
-                        .catch(error => {
-                            console.error('Failed to convert URL to base64:', error);
-                            // Fallback to original URL
-                            document.body.style.backgroundImage = `url('${imageValue}')`;
-                            document.body.style.background = `url('${imageValue}') center/cover no-repeat`;
-                            console.log('Using fallback URL for background:', imageValue);
-                        });
+                    // Update backgroundImageUrl property with the URL
+                    this.updateBackgroundImageUrlProperty(imageValue);
                 }
             } else {
                 // No image selected, use default gradient
