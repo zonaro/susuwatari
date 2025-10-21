@@ -1,3 +1,7 @@
+
+![Preview of Susuwatari Wallpaper](preview.gif)
+
+
 # Susuwatari - Interactive Audio-Reactive Wallpaper
 
 An interactive implementation of the famous Susuwatari (soot sprites) from Studio Ghibli films, especially "Spirited Away" and "My Neighbor Totoro", compatible with both **Wallpaper Engine** and **Lively Wallpaper** with audio-reactive features.
