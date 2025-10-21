@@ -223,11 +223,20 @@ class SusuwatariCanvas {
         }
 
         // Background image property (supports both Wallpaper Engine file paths and Lively Wallpaper URLs/paths)
-        if (properties.background_image || properties.background_image_picker) {
+        if (properties.background_image || properties.background_image_picker || properties.backgroundImagePicker) {
             let imageValue = '';
 
-            // Check if user used the file picker
-            if (properties.background_image_picker && properties.background_image_picker.value && properties.background_image_picker.value.trim() !== '') {
+            // Priority 1: Check if user used the Lively folder dropdown (backgroundImagePicker)
+            if (properties.backgroundImagePicker && properties.backgroundImagePicker.value && properties.backgroundImagePicker.value.trim() !== '') {
+                imageValue = properties.backgroundImagePicker.value;
+                // For Lively Wallpaper folder dropdown, prepend the backgrounds folder path
+                if (!imageValue.includes('/') && !imageValue.includes('\\')) {
+                    imageValue = `backgrounds/${imageValue}`;
+                }
+                console.log('Using Lively folder dropdown image:', imageValue);
+            }
+            // Priority 2: Check if user used the Wallpaper Engine file picker
+            else if (properties.background_image_picker && properties.background_image_picker.value && properties.background_image_picker.value.trim() !== '') {
                 imageValue = properties.background_image_picker.value;
 
                 // Update the text input field with the selected file path (for Wallpaper Engine sync)
@@ -239,10 +248,12 @@ class SusuwatariCanvas {
                         });
                     }, 100);
                 }
+                console.log('Using Wallpaper Engine file picker image:', imageValue);
             }
-            // Otherwise use the text input value
+            // Priority 3: Otherwise use the text input value
             else if (properties.background_image && properties.background_image.value && properties.background_image.value.trim() !== '') {
                 imageValue = properties.background_image.value;
+                console.log('Using text input image:', imageValue);
             }
 
             if (imageValue && imageValue.trim() !== '') {
@@ -1917,7 +1928,8 @@ function livelyPropertyListener(name, val) {
         'sleepTime': 'sleep_time',
         'sleepEnabled': 'sleep_enabled',
         'restTimeout': 'rest_timeout',
-        'backgroundImageUrl': 'background_image'
+        'backgroundImageUrl': 'background_image',
+        'backgroundImagePicker': 'background_image_picker'
     };
 
     const wallpaperPropertyName = livelyToWallpaperMap[name];
@@ -1985,7 +1997,8 @@ document.addEventListener('DOMContentLoaded', function () {
             'sleepTime': 10,
             'sleepEnabled': true,
             'restTimeout': 5,
-            'backgroundImageUrl': ''
+            'backgroundImageUrl': '',
+            'backgroundImagePicker': null
         };
 
         // Apply each default property

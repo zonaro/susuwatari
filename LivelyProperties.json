@@ -92,5 +92,13 @@
         "type": "textbox",
         "value": "",
         "help": "Enter a URL or local file path to a background image (e.g., https://example.com/image.jpg or C:\\path\\to\\image.png)"
+    },
+    "backgroundImagePicker": {
+        "type": "folderDropdown",
+        "value": null,
+        "text": "Background Image File",
+        "filter": "*.jpg|*.png|*.jpeg|*.gif|*.bmp|*.webp",
+        "folder": "backgrounds",
+        "help": "Select a background image from the backgrounds folder or use the file picker to add new images"
     }
 }

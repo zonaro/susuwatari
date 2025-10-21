@@ -108,6 +108,13 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 - **Default**: Empty
 - **Description**: Enter a URL or local file path to a background image. Supports web URLs (https://example.com/image.jpg) and local file paths (C:\path\to\image.png). Uses the same image formats and scaling as Wallpaper Engine. When empty, uses the default blue gradient.
 
+#### Background Image File (Lively Wallpaper Only)
+- **Type**: Folder Dropdown with FilePicker
+- **Default**: None
+- **Folder**: backgrounds/
+- **Supported Formats**: JPG, PNG, JPEG, GIF, BMP, WebP
+- **Description**: Select a background image from the backgrounds folder or use the file picker to add new images. This control automatically scans the backgrounds folder and provides easy access to your custom images. Has higher priority than the URL/Path input when both are set.
+
 ## Installation Instructions
 
 ### Wallpaper Engine (Steam)
@@ -173,7 +180,11 @@ Access settings through wallpaper software
 - **Dual Options**: Both methods work together - file picker updates the text field for easy editing
 
 ### Lively Wallpaper:
-- **URL/Path Input**: Enter image URLs or local file paths in the background image field
+- **Folder Dropdown**: Select images from the `backgrounds/` folder with visual preview
+- **FilePicker Integration**: Add new images directly through the folder dropdown interface
+- **URL/Path Input**: Alternative text input for direct URLs or file paths
+- **Automatic Scanning**: The dropdown automatically scans the backgrounds folder for supported images
+- **Priority System**: Folder dropdown takes priority over URL/Path input when both are set
 
 ### All Platforms:
 - **Supported Formats**: JPEG, PNG, BMP, GIF, SVG, WebP
@@ -181,10 +192,17 @@ Access settings through wallpaper software
 - **Local Files**: Full file paths (C:\path\to\image.jpg or /path/to/image.jpg)
 - **Default Gradient**: Beautiful blue gradient when no image is specified
 
+### How to Add Custom Backgrounds (Lively Wallpaper):
+1. **Copy images** to the `backgrounds/` folder in the wallpaper directory
+2. **Use the dropdown** to select from available images
+3. **Or use FilePicker** to browse and automatically copy new images to the folder
+4. **Supported formats**: JPG, PNG, JPEG, GIF, BMP, WebP
+
 ### Tips:
 - **High-resolution recommended**: Images look better with moving particles
 - **Dark backgrounds preferred**: Ensure Susuwatari remain visible against the background
 - **Online images**: Must be accessible via direct URL (some sites block hotlinking)
+- **Organization**: Use descriptive filenames for easier selection in dropdown
 
 ## Technologies Used
 
