@@ -2059,7 +2059,7 @@ function detectBPM(audioArray, sampleRate = 44100) {
     return bestBPM;
 }
 
- 
+
 
 
 
@@ -2537,18 +2537,8 @@ function showBrowserModeNotification() {
                         border-radius: 4px;
                         cursor: pointer;
                         font-size: 12px;
-                        flex: 1;
+                        width: 100%;
                     ">Open Settings</button>
-                    <button onclick="this.parentElement.parentElement.parentElement.remove()" style="
-                        background: rgba(255, 255, 255, 0.1);
-                        color: white;
-                        border: none;
-                        padding: 8px 12px;
-                        border-radius: 4px;
-                        cursor: pointer;
-                        font-size: 12px;
-                        flex: 1;
-                    ">Dismiss</button>
                 </div>
             </div>
 
@@ -2657,18 +2647,6 @@ function showBrowserModeNotification() {
             downloadBtn.textContent = '📦 Download ZIP - Lively Wallpaper';
         }
     });
-
-    // Auto-hide after 15 seconds
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.style.opacity = '0';
-            setTimeout(() => {
-                if (notification.parentElement) {
-                    notification.remove();
-                }
-            }, 300);
-        }
-    }, 15000);
 }
 
 // Make openSettingsPanel and audio functions globally available
