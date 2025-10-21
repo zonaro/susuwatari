@@ -1950,7 +1950,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Initialize audio for the detected engine
     if (isWallpaperEngine) {
-        overlay.remove();
+        if (overlay) {
+            overlay.remove();
+        }
+
 
         console.log('Initializing for Wallpaper Engine...');
         // Register the audio listener with Wallpaper Engine
@@ -1967,14 +1970,13 @@ document.addEventListener('DOMContentLoaded', function () {
         initializeBrowserAudio();
 
         if (overlay) {
-            if (isBrowserMode) {
-                overlay.style.display = 'flex';
-            }
+            overlay.style.display = 'flex';
         }
 
     } else {
-        overlay.remove();
-
+        if (overlay) {
+            overlay.remove();
+        }
         window.livelyAudioListener = function (audioArray) {
             if (susuwatariInstance) {
                 susuwatariInstance.wallpaperAudioListener(audioArray);
