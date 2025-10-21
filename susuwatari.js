@@ -55,7 +55,25 @@ class SusuwatariCanvas {
         this.mouseHistory = []; // Track recent mouse positions
         this.maxMouseHistoryLength = 20; // Keep last 20 positions (increased from 10)
 
+        // Shoe image for rendering
+        this.shoeImage = new Image();
+        this.shoeImageLoaded = false;
+        this.loadShoeImage();
+
         this.init();
+    }
+
+    // Load the shoe image
+    loadShoeImage() {
+        this.shoeImage.onload = () => {
+            this.shoeImageLoaded = true;
+            console.log('Shoe image loaded successfully');
+        };
+        this.shoeImage.onerror = () => {
+            console.error('Failed to load shoe image');
+            this.shoeImageLoaded = false;
+        };
+        this.shoeImage.src = 'shoes.png';
     }
 
     // Convert file to base64 data URL
@@ -522,12 +540,14 @@ class SusuwatariCanvas {
                 return distance < collectible.size / 2;
             });
 
-            if (e.ctrlKey) {
+            if (e.ctrlKey && e.shiftKey) {
                 this.createParticle(e.clientX, e.clientY);
+            } else if (e.ctrlKey) {
+                this.createCollectible(e.clientX, e.clientY, 'shoe');
             } else if (e.shiftKey) {
-                this.createCollectible(e.clientX, e.clientY, true);
+                this.createCollectible(e.clientX, e.clientY, 'star');
             } else if (e.altKey) {
-                this.createCollectible(e.clientX, e.clientY, false);
+                this.createCollectible(e.clientX, e.clientY, 'coal');
             } else if (clickedCollectibleIndex !== -1) {
                 // Handle collectible click
                 this.handleCollectibleClick(clickedCollectibleIndex, e.clientX, e.clientY);
@@ -648,10 +668,36 @@ class SusuwatariCanvas {
         return particle;
     }
 
-    createCollectible(x, y, isCoal) {
-        // Randomly choose between coal stone (50%) or colored star (50%)
-        if (isCoal === undefined) {
-            isCoal = Math.random() < 0.5;
+    createCollectible(x, y, type) {
+        // Randomly choose between coal stone (33%), colored star (33%), or shoe (33%)
+        if (type === undefined) {
+            const rand = Math.random();
+            if (rand < 0.33) {
+                type = 'coal';
+            } else if (rand < 0.66) {
+                type = 'star';
+            } else {
+                type = 'shoe';
+            }
+        }
+
+        // Check if we already have 1 shoe on screen
+        const existingShoes = this.collectibles.filter(c => c.type === 'shoe');
+        if (type === 'shoe' && existingShoes.length >= 1) {
+            // Remove existing shoe when creating a new one (only 1 shoe at a time)
+            existingShoes.forEach((shoe, index) => {
+                const shoeIndex = this.collectibles.indexOf(shoe);
+                if (shoeIndex > -1) {
+                    // Reset Susuwatari that were targeting the old shoe
+                    this.particles.forEach(particle => {
+                        if (particle.targetCollectible === shoe) {
+                            particle.targetCollectible = null;
+                            particle.isSeekingCollectible = false;
+                        }
+                    });
+                    this.collectibles.splice(shoeIndex, 1);
+                }
+            });
         }
 
         // Get average Susuwatari size for scaling
@@ -660,35 +706,45 @@ class SusuwatariCanvas {
             this.initialSize;
 
         let collectibleSize;
-        if (isCoal) {
+        if (type === 'coal') {
             // Coal: 50% to 150% of Susuwatari size
             const sizeMultiplier = 0.5 + Math.random() * 1.0; // 0.5 to 1.5
             collectibleSize = avgSusuwatariSize * sizeMultiplier;
-        } else {
+        } else if (type === 'star') {
             // Stars: ALWAYS smaller than Susuwatari (30% to 90%)
             const sizeMultiplier = 0.3 + Math.random() * 0.6; // 0.3 to 0.9
+            collectibleSize = avgSusuwatariSize * sizeMultiplier;
+        } else { // shoe
+            // Shoes:  180% of Susuwatari size
+            const sizeMultiplier = 1.8;
             collectibleSize = avgSusuwatariSize * sizeMultiplier;
         }
 
         const collectible = {
             x: x,
             y: y,
-            type: isCoal ? 'coal' : 'star',
+            type: type,
             size: collectibleSize,
-            color: isCoal ? '#111111' : this.getRandomStarColor(), // Much darker coal color
-            rotation: Math.random() * Math.PI * 2, // Random rotation for visual variety
+            color: type === 'coal' ? '#111111' : (type === 'star' ? this.getRandomStarColor() : '#FFD700'), // Yellow for shoes
+            rotation: type === 'shoe' ? 0 : Math.random() * Math.PI * 2, // Shoes have fixed rotation (0), others random
             createdTime: Date.now(),
             pulseOffset: Math.random() * Math.PI * 2, // For gentle pulsing animation
-            sparkles: isCoal ? [] : this.createSparkles(), // Stars have sparkle effects
-            coalShape: isCoal ? this.generateCoalShape() : null, // Pre-generated coal shape
+            sparkles: type === 'star' ? this.createSparkles() : [], // Only stars have sparkle effects
+            coalShape: type === 'coal' ? this.generateCoalShape() : null, // Pre-generated coal shape
+            shoeShape: type === 'shoe' ? this.generateShoeShape() : null, // Pre-generated shoe shape
             assignedTo: null, // Which Susuwatari is assigned to collect this
             isLargerThanSusuwatari: collectibleSize > avgSusuwatariSize // Flag for explosion check
         };
 
         this.collectibles.push(collectible);
 
-        // Assign a random Susuwatari to collect this item
-        this.assignCollectibleToSusuwatari(collectible);
+        // Special assignment logic for shoes
+        if (type === 'shoe') {
+            this.assignShoeToAllSusuwatari(collectible);
+        } else {
+            // Regular assignment for coal and stars
+            this.assignCollectibleToSusuwatari(collectible);
+        }
 
         return collectible;
     }
@@ -710,34 +766,68 @@ class SusuwatariCanvas {
 
             // Remove original coal
             this.collectibles.splice(collectibleIndex, 1);
+        } else if (collectible.type === 'shoe') {
+            // Shoes disappear when clicked (only way to remove them)
+
+            // Reset all Susuwatari that were seeking this shoe
+            this.particles.forEach(particle => {
+                if (particle.targetCollectible === collectible) {
+                    particle.targetCollectible = null;
+                    particle.isSeekingCollectible = false;
+                }
+            });
+
+            // Create collection effect
+            this.createCollectionEffect(collectible.x, collectible.y, collectible.type, collectible.color);
+
+            // Remove the shoe
+            this.collectibles.splice(collectibleIndex, 1);
         }
 
         // Restart collection animation - reassign collectibles to Susuwatari
         this.reassignAllCollectibles();
     }
 
-    createCollectibleAt(x, y, size, isCoal) {
+    createCollectibleAt(x, y, size, type) {
         const avgSusuwatariSize = this.particles.length > 0 ?
             this.particles.reduce((sum, p) => sum + p.size, 0) / this.particles.length :
             this.initialSize;
 
+        let collectibleType;
+        if (type === true || type === 'coal') {
+            collectibleType = 'coal';
+        } else if (type === 'star') {
+            collectibleType = 'star';
+        } else if (type === 'shoe') {
+            collectibleType = 'shoe';
+        } else {
+            collectibleType = 'coal'; // Default fallback
+        }
+
         const collectible = {
             x: x,
             y: y,
-            type: isCoal ? 'coal' : 'star',
+            type: collectibleType,
             size: size,
-            color: isCoal ? '#111111' : this.getRandomStarColor(),
-            rotation: Math.random() * Math.PI * 2,
+            color: collectibleType === 'coal' ? '#111111' : (collectibleType === 'star' ? this.getRandomStarColor() : '#FFD700'),
+            rotation: collectibleType === 'shoe' ? 0 : Math.random() * Math.PI * 2, // Shoes have fixed rotation, others random
             createdTime: Date.now(),
             pulseOffset: Math.random() * Math.PI * 2,
-            sparkles: isCoal ? [] : this.createSparkles(),
-            coalShape: isCoal ? this.generateCoalShape() : null,
+            sparkles: collectibleType === 'star' ? this.createSparkles() : [],
+            coalShape: collectibleType === 'coal' ? this.generateCoalShape() : null,
+            shoeShape: collectibleType === 'shoe' ? this.generateShoeShape() : null,
             assignedTo: null,
             isLargerThanSusuwatari: size > avgSusuwatariSize
         };
 
         this.collectibles.push(collectible);
-        this.assignCollectibleToSusuwatari(collectible);
+
+        if (collectibleType === 'shoe') {
+            this.assignShoeToAllSusuwatari(collectible);
+        } else {
+            this.assignCollectibleToSusuwatari(collectible);
+        }
+
         return collectible;
     }
 
@@ -752,9 +842,17 @@ class SusuwatariCanvas {
             collectible.assignedTo = null;
         });
 
-        // Reassign all collectibles
+        // First, handle shoes (they have priority and special assignment)
+        const shoes = this.collectibles.filter(c => c.type === 'shoe');
+        if (shoes.length > 0) {
+            this.assignShoeToAllSusuwatari(shoes[0]);
+        }
+
+        // Then assign other collectibles to remaining available Susuwatari
         this.collectibles.forEach(collectible => {
-            this.assignCollectibleToSusuwatari(collectible);
+            if (collectible.type !== 'shoe') {
+                this.assignCollectibleToSusuwatari(collectible);
+            }
         });
     }
 
@@ -806,6 +904,85 @@ class SusuwatariCanvas {
         return shape;
     }
 
+    generateShoeShape() {
+        // Generate sandal/slipper shape exactly like in the provided image
+        const shoeShape = {
+            // Main sole outline - wide, rounded sandal shape
+            sole: {
+                points: [
+                    { x: -0.48, y: 0.15 },  // Back heel rounded
+                    { x: -0.5, y: 0.25 },   // Heel bottom curve
+                    { x: -0.45, y: 0.4 },   // Heel side
+                    { x: -0.25, y: 0.48 },  // Mid heel bottom
+                    { x: 0.0, y: 0.5 },     // Center bottom
+                    { x: 0.25, y: 0.48 },   // Mid front bottom
+                    { x: 0.4, y: 0.4 },     // Front bottom curve
+                    { x: 0.48, y: 0.25 },   // Toe tip
+                    { x: 0.5, y: 0.1 },     // Toe top curve
+                    { x: 0.45, y: -0.05 },  // Toe upper side
+                    { x: 0.35, y: -0.15 },  // Front upper
+                    { x: 0.1, y: -0.2 },    // Mid upper
+                    { x: -0.1, y: -0.2 },   // Mid back upper
+                    { x: -0.35, y: -0.15 }, // Back upper
+                    { x: -0.45, y: -0.05 }, // Heel upper side
+                    { x: -0.48, y: 0.05 }   // Back to start
+                ]
+            },
+            // Inner sole (lighter area inside)
+            innerSole: {
+                points: [
+                    { x: -0.35, y: 0.1 },   // Inner heel
+                    { x: -0.38, y: 0.2 },   // Inner heel curve
+                    { x: -0.25, y: 0.35 },  // Inner mid
+                    { x: 0.0, y: 0.38 },    // Inner center
+                    { x: 0.25, y: 0.35 },   // Inner front
+                    { x: 0.35, y: 0.25 },   // Inner toe curve
+                    { x: 0.38, y: 0.1 },    // Inner toe
+                    { x: 0.35, y: -0.05 },  // Inner toe upper
+                    { x: 0.2, y: -0.1 },    // Inner front upper
+                    { x: -0.2, y: -0.1 },   // Inner back upper
+                    { x: -0.35, y: -0.05 }  // Inner heel upper
+                ]
+            },
+            // Foot straps (the beige/pink straps visible in the image)
+            straps: [
+                // Main diagonal strap across the foot
+                {
+                    points: [
+                        { x: -0.2, y: -0.05 }, // Start at heel side
+                        { x: -0.1, y: 0.1 },   // Curve over arch
+                        { x: 0.1, y: 0.15 },   // Mid foot
+                        { x: 0.25, y: 0.05 },  // Toward toe
+                        { x: 0.3, y: -0.05 }   // End at toe area
+                    ],
+                    width: 0.08  // Strap thickness
+                },
+                // Secondary strap
+                {
+                    points: [
+                        { x: -0.25, y: 0.05 }, // Heel area
+                        { x: -0.05, y: 0.2 },  // Arch area
+                        { x: 0.15, y: 0.18 },  // Front
+                        { x: 0.25, y: 0.1 }    // Toe area
+                    ],
+                    width: 0.06  // Slightly thinner
+                }
+            ],
+            // Sole edge highlight
+            edgeHighlight: {
+                points: [
+                    { x: -0.4, y: 0.35 },   // Heel edge
+                    { x: -0.2, y: 0.42 },   // Mid edge
+                    { x: 0.0, y: 0.44 },    // Center edge
+                    { x: 0.2, y: 0.42 },    // Front edge
+                    { x: 0.35, y: 0.32 }    // Toe edge
+                ]
+            }
+        };
+
+        return shoeShape;
+    }
+
     assignCollectibleToSusuwatari(collectible) {
         // Find available Susuwatari (not sleeping, not dizzy, not already seeking)
         const availableSusuwatari = this.particles.filter(particle =>
@@ -819,6 +996,50 @@ class SusuwatariCanvas {
             randomSusuwatari.targetCollectible = collectible;
             randomSusuwatari.isSeekingCollectible = true;
             collectible.assignedTo = randomSusuwatari;
+        }
+    }
+
+    assignShoeToAllSusuwatari(newShoe) {
+        // Get all shoes on screen (should only be 1 now)
+        const allShoes = this.collectibles.filter(c => c.type === 'shoe');
+
+        if (allShoes.length === 0) return;
+
+        // Reset all Susuwatari seeking collectibles first
+        this.particles.forEach(particle => {
+            if (particle.targetCollectible && particle.targetCollectible.type === 'shoe') {
+                particle.targetCollectible = null;
+                particle.isSeekingCollectible = false;
+            }
+        });
+
+        // Reset shoe assignments
+        allShoes.forEach(shoe => {
+            shoe.assignedTo = null;
+        });
+
+        // Get available Susuwatari (not sleeping, not dizzy)
+        const availableSusuwatari = this.particles.filter(particle =>
+            !particle.isSleeping &&
+            !particle.isDizzy
+        );
+
+        if (availableSusuwatari.length === 0) return;
+
+        // Only one shoe: all Susuwatari go to it
+        const shoe = allShoes[0];
+        availableSusuwatari.forEach(particle => {
+            particle.targetCollectible = shoe;
+            particle.isSeekingCollectible = true;
+        });
+        shoe.assignedTo = availableSusuwatari; // Array of all assigned particles
+    }
+
+    reassignShoesToAllSusuwatari() {
+        const allShoes = this.collectibles.filter(c => c.type === 'shoe');
+        if (allShoes.length > 0) {
+            // Use the first shoe to trigger reassignment of all shoes
+            this.assignShoeToAllSusuwatari(allShoes[0]);
         }
     }
 
@@ -1311,63 +1532,111 @@ class SusuwatariCanvas {
 
         // Update collectibles and check for collection
         this.collectibles = this.collectibles.filter(collectible => {
-            // Check if assigned Susuwatari reached the collectible
-            if (collectible.assignedTo) {
-                const susuwatari = collectible.assignedTo;
-                const distance = Math.sqrt(
-                    Math.pow(susuwatari.x - collectible.x, 2) +
-                    Math.pow(susuwatari.y - collectible.y, 2)
-                );
+            // Special handling for shoes - they are NOT collected when touched, only when clicked
+            if (collectible.type === 'shoe') {
+                // Check if any assigned Susuwatari reached the shoe
+                if (Array.isArray(collectible.assignedTo)) {
+                    // Multiple Susuwatari assigned (always the case for shoes)
+                    for (let i = 0; i < collectible.assignedTo.length; i++) {
+                        const susuwatari = collectible.assignedTo[i];
+                        const distance = Math.sqrt(
+                            Math.pow(susuwatari.x - collectible.x, 2) +
+                            Math.pow(susuwatari.y - collectible.y, 2)
+                        );
 
-                // Collection distance threshold
-                const collectionDistance = susuwatari.size / 2 + collectible.size;
+                        const gatherDistance = collectible.size / 2 + susuwatari.size / 2 + 20; // Distance to gather around shoe
 
-                if (distance < collectionDistance) {
-                    // Check if collectible is larger than Susuwatari - if so, explode!
-                    if (collectible.isLargerThanSusuwatari && collectible.size > susuwatari.size) {
-                        // Create explosion effect like when clicked
-                        this.createSmokeExplosion(susuwatari.x, susuwatari.y, susuwatari.size);
+                        if (distance < gatherDistance) {
+                            // Susuwatari is close enough - position them around the shoe in a circle
+                            const angle = Math.atan2(susuwatari.y - collectible.y, susuwatari.x - collectible.x);
+                            const targetDistance = collectible.size / 2 + susuwatari.size / 2 + 10; // Desired distance from shoe center
 
-                        // Remove the Susuwatari that touched the large collectible
-                        const particleIndex = this.particles.indexOf(susuwatari);
-                        if (particleIndex > -1) {
-                            this.particles.splice(particleIndex, 1);
-                        }                        // Create collection effect for the collectible
-                        this.createCollectionEffect(collectible.x, collectible.y, collectible.type, collectible.color);
+                            const targetX = collectible.x + Math.cos(angle) * targetDistance;
+                            const targetY = collectible.y + Math.sin(angle) * targetDistance;
 
-                        // If it's a coal stone, leave soot stain at the location
-                        if (collectible.type === 'coal') {
-                            this.createSootStain(collectible.x, collectible.y, collectible.size * 1.5);
+                            // Set new target position around the shoe
+                            susuwatari.targetX = Math.max(susuwatari.size / 2, Math.min(this.canvas.width - susuwatari.size / 2, targetX));
+                            susuwatari.targetY = Math.max(susuwatari.size / 2, Math.min(this.canvas.height - susuwatari.size / 2, targetY));
+
+                            // Don't stop seeking - keep them gathered around the shoe
+                            // Create small effect to show they're gathered
+                            if (Math.random() < 0.02) { // Occasional sparkle effect
+                                this.createTrailParticle(susuwatari.x, susuwatari.y, susuwatari.size * 0.2, 0.3);
+                            }
                         }
+                    }
 
-                        return false; // Remove collectible
-                    } else {
-                        // Normal collection for smaller collectibles
-                        susuwatari.targetCollectible = null;
-                        susuwatari.isSeekingCollectible = false;
+                    // Check if any assigned Susuwatari became unavailable
+                    const stillAvailable = collectible.assignedTo.filter(susuwatari =>
+                        !susuwatari.isSleeping && !susuwatari.isDizzy
+                    );
 
-                        // Create collection effect
-                        this.createCollectionEffect(collectible.x, collectible.y, collectible.type, collectible.color);
-
-                        // If it's a coal stone, leave soot stain at the location
-                        if (collectible.type === 'coal') {
-                            this.createSootStain(collectible.x, collectible.y, collectible.size * 1.5);
-                        }
-
-                        return false; // Remove collectible
+                    if (stillAvailable.length !== collectible.assignedTo.length) {
+                        // Some Susuwatari became unavailable, reassign all shoes
+                        this.reassignShoesToAllSusuwatari();
                     }
                 }
+            } else {
+                // Regular handling for coal and stars (single Susuwatari assignment)
+                if (collectible.assignedTo) {
+                    const susuwatari = collectible.assignedTo;
+                    const distance = Math.sqrt(
+                        Math.pow(susuwatari.x - collectible.x, 2) +
+                        Math.pow(susuwatari.y - collectible.y, 2)
+                    );
 
-                // If Susuwatari became unavailable (sleeping, dizzy, etc.), reassign
-                if (susuwatari.isSleeping || susuwatari.isDizzy) {
-                    susuwatari.targetCollectible = null;
-                    susuwatari.isSeekingCollectible = false;
-                    collectible.assignedTo = null;
+                    // Collection distance threshold
+                    const collectionDistance = susuwatari.size / 2 + collectible.size;
+
+                    if (distance < collectionDistance) {
+                        // Check if collectible is larger than Susuwatari - if so, explode!
+                        if (collectible.isLargerThanSusuwatari && collectible.size > susuwatari.size) {
+                            // Create explosion effect like when clicked
+                            this.createSmokeExplosion(susuwatari.x, susuwatari.y, susuwatari.size);
+
+                            // Remove the Susuwatari that touched the large collectible
+                            const particleIndex = this.particles.indexOf(susuwatari);
+                            if (particleIndex > -1) {
+                                this.particles.splice(particleIndex, 1);
+                            }
+
+                            // Create collection effect for the collectible
+                            this.createCollectionEffect(collectible.x, collectible.y, collectible.type, collectible.color);
+
+                            // If it's a coal stone, leave soot stain at the location
+                            if (collectible.type === 'coal') {
+                                this.createSootStain(collectible.x, collectible.y, collectible.size * 1.5);
+                            }
+
+                            return false; // Remove collectible
+                        } else {
+                            // Normal collection for smaller collectibles
+                            susuwatari.targetCollectible = null;
+                            susuwatari.isSeekingCollectible = false;
+
+                            // Create collection effect
+                            this.createCollectionEffect(collectible.x, collectible.y, collectible.type, collectible.color);
+
+                            // If it's a coal stone, leave soot stain at the location
+                            if (collectible.type === 'coal') {
+                                this.createSootStain(collectible.x, collectible.y, collectible.size * 1.5);
+                            }
+
+                            return false; // Remove collectible
+                        }
+                    }
+
+                    // If Susuwatari became unavailable (sleeping, dizzy, etc.), reassign
+                    if (susuwatari.isSleeping || susuwatari.isDizzy) {
+                        susuwatari.targetCollectible = null;
+                        susuwatari.isSeekingCollectible = false;
+                        collectible.assignedTo = null;
+                        this.assignCollectibleToSusuwatari(collectible);
+                    }
+                } else {
+                    // Try to reassign if no one is assigned
                     this.assignCollectibleToSusuwatari(collectible);
                 }
-            } else {
-                // Try to reassign if no one is assigned
-                this.assignCollectibleToSusuwatari(collectible);
             }
 
             // Update sparkles for stars
@@ -1383,7 +1652,7 @@ class SusuwatariCanvas {
 
     createCollectionEffect(x, y, type, color) {
         // Create small particles effect when collectible is collected
-        const particleCount = type === 'star' ? 8 : 5;
+        const particleCount = type === 'star' ? 8 : (type === 'shoe' ? 12 : 5);
 
         for (let i = 0; i < particleCount; i++) {
             const angle = (Math.PI * 2 * i) / particleCount;
@@ -1411,6 +1680,9 @@ class SusuwatariCanvas {
 
             if (collectible.type === 'coal') {
                 // Coal stones don't pulse/wobble - static size
+                size = collectible.size;
+            } else if (collectible.type === 'shoe') {
+                // Shoes are static - no pulsing
                 size = collectible.size;
             } else {
                 // Stars continue to pulse
@@ -1443,6 +1715,56 @@ class SusuwatariCanvas {
                 });
                 this.ctx.closePath();
                 this.ctx.fill();
+
+            } else if (collectible.type === 'shoe') {
+                // Draw shoe using the shoes.png image
+                if (this.shoeImageLoaded) {
+                    this.ctx.save();
+
+                    // Add shadow/glow effect
+                    this.ctx.shadowColor = 'rgba(255, 215, 0, 0.4)';
+                    this.ctx.shadowBlur = 8;
+                    this.ctx.shadowOffsetX = 0;
+                    this.ctx.shadowOffsetY = 0;
+
+                    // Calculate image dimensions to fit the collectible size
+                    const imageSize = size;
+                    const drawWidth = imageSize;
+                    const drawHeight = (imageSize * this.shoeImage.height) / this.shoeImage.width;
+
+                    // Draw the shoe image centered on the collectible position (no rotation)
+                    this.ctx.drawImage(
+                        this.shoeImage,
+                        collectible.x - drawWidth / 2,
+                        collectible.y - drawHeight / 2,
+                        drawWidth,
+                        drawHeight
+                    );
+
+                    this.ctx.restore();
+                } else {
+                    // Fallback: draw simple circle if image not loaded
+                    this.ctx.save();
+                    this.ctx.fillStyle = '#FFD700';
+                    this.ctx.strokeStyle = '#DAA520';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.shadowColor = 'rgba(255, 215, 0, 0.6)';
+                    this.ctx.shadowBlur = 8;
+
+                    this.ctx.beginPath();
+                    this.ctx.arc(collectible.x, collectible.y, size / 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.stroke();
+
+                    // Add "SHOE" text as fallback
+                    this.ctx.fillStyle = '#000000';
+                    this.ctx.font = `${size / 4}px Arial`;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText('SHOE', collectible.x, collectible.y);
+
+                    this.ctx.restore();
+                }
 
             } else { // star
                 // Draw colored star with rounded points and rotation
