@@ -2586,6 +2586,7 @@ function showBrowserModeNotification() {
                 { name: 'LivelyInfo.json', desc: 'Lively Wallpaper metadata' },
                 { name: 'LivelyProperties.json', desc: 'Configurable properties' },
                 { name: 'index.html', desc: 'Main interface' },
+                { name: 'preview.gif', desc: 'Preview' },
                 { name: 'susuwatari.js', desc: 'Animation engine' }
             ];
 

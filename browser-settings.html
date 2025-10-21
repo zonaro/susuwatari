@@ -215,7 +215,7 @@
         <h1>🎨 Susuwatari Settings</h1>
 
         <div id="statusMessage" class="status-message status-info">
-            Browser mode detected. Settings will be saved locally.
+            Settings auto-save as you change them.
         </div>
 
         <!-- Appearance Settings -->
@@ -370,12 +370,23 @@
         <!-- Buttons -->
         <div class="button-container">
             <button type="button" class="btn-secondary" onclick="resetToDefaults()">Reset Defaults</button>
-            <button type="button" class="btn-primary" onclick="applySettings()">Apply Settings</button>
-            <button type="button" class="btn-danger" onclick="window.close()">Close</button>
         </div>
     </div>
 
     <script>
+        // Debounce function for text input auto-save
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
         // Settings management for browser mode
         const defaultSettings = {
             susuwatariSize: 18,
@@ -435,13 +446,26 @@
             // Update value displays
             updateValueDisplays();
 
-            // Add event listeners for real-time updates
+            // Add event listeners for real-time updates and auto-save
             document.querySelectorAll('input[type="range"]').forEach(input => {
-                input.addEventListener('input', updateValueDisplays);
+                input.addEventListener('input', () => {
+                    updateValueDisplays();
+                    applySettings(); // Auto-save on change
+                });
+            });
+
+            // Add auto-save listeners for checkboxes
+            document.querySelectorAll('input[type="checkbox"]').forEach(input => {
+                input.addEventListener('change', applySettings);
+            });
+
+            // Add auto-save listener for text inputs
+            document.querySelectorAll('input[type="text"]').forEach(input => {
+                input.addEventListener('input', debounce(applySettings, 500)); // Debounced for text inputs
             });
         }
 
-        // Apply settings and send to parent window
+        // Apply settings and send to parent window (auto-save on change)
         function applySettings() {
             const settings = {};
 
@@ -470,15 +494,15 @@
                 }, '*');
             }
 
-            // Show success message
+            // Show brief success message
             const statusMessage = document.getElementById('statusMessage');
             statusMessage.className = 'status-message status-success';
-            statusMessage.textContent = '✓ Settings applied successfully!';
+            statusMessage.textContent = '✓ Settings saved automatically!';
 
             setTimeout(() => {
                 statusMessage.className = 'status-message status-info';
-                statusMessage.textContent = 'Browser mode detected. Settings will be saved locally.';
-            }, 2000);
+                statusMessage.textContent = 'Settings auto-save as you change them.';
+            }, 1500);
         }
 
         // Reset to default settings
@@ -507,7 +531,7 @@
 
                 setTimeout(() => {
                     statusMessage.className = 'status-message status-info';
-                    statusMessage.textContent = 'Browser mode detected. Settings will be saved locally.';
+                    statusMessage.textContent = 'Settings auto-save as you change them.';
                 }, 2000);
             }
         }
@@ -566,9 +590,7 @@
 
         // Handle keyboard shortcuts
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' && e.ctrlKey) {
-                applySettings();
-            } else if (e.key === 'Escape') {
+            if (e.key === 'Escape') {
                 window.close();
             }
         });
