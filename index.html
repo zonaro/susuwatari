@@ -224,14 +224,17 @@
     <div id="browser-download-overlay">
         <div id="browser-download-container">
             <h2>🌫️ Susuwatari</h2>
-            <img src="preview.gif" alt="Preview" style="max-width: 100%; border-radius: 10px; margin-bottom: 15px;">
+
+            <img src="preview.gif" alt="Preview" class="preview-image" style="display: none;"
+                onload="this.style.display='block';">
+
             <p>Interactive wallpaper with adorable soot sprites that react to your mouse and audio!</p>
 
             <div class="instructions">
                 <h3>🎮 How to install via Wallpaper Engine (Steam Workshop):</h3>
                 <ol>
                     <li>Have <strong>Wallpaper Engine</strong> installed on Steam</li>
-                    <li>Click the <strong>"🎮 Steam Workshop"</strong> button above</li>
+                    <li>Click the <strong>"🎮 Steam Workshop"</strong> button below</li>
                     <li>Click <strong>"Subscribe"</strong> on the Workshop page</li>
                     <li>Open Wallpaper Engine</li>
                     <li>Go to the <strong>"Workshop"</strong> tab</li>
@@ -241,10 +244,12 @@
                 </ol>
             </div>
 
+            <div class="divider"></div>
+
             <div class="instructions">
                 <h3>📋 How to install on Lively Wallpaper:</h3>
                 <ol>
-                    <li>Download the <strong>Susuwatari.zip</strong> file by clicking the button above</li>
+                    <li>Download the <strong>Susuwatari.zip</strong> file by clicking the button below</li>
                     <li>Open Lively Wallpaper</li>
                     <li>Click "Add Wallpaper" or "+"</li>
                     <li>Navigate to the folder where you downloaded the file and select <strong>Susuwatari.zip</strong>
@@ -253,15 +258,19 @@
                     <li>Enjoy your interactive Susuwatari! 🎉</li>
                 </ol>
             </div>
+
             <div class="download-buttons">
                 <a href="steam://url/CommunityFilePage/3587855531" class="download-btn wallpaper-engine-btn">
                     🎮 Steam Workshop - Wallpaper Engine
                 </a>
-                <button id="downloadBtn" class="download-btn">
+                <button id="downloadBtn" class="download-btn lively-download-btn">
                     📦 Download Susuwatari.zip - Lively Wallpaper
                 </button>
             </div>
-            <div id="status"></div>
+
+            <div id="status" style="display: none;"></div>
+
+            <div class="divider"></div>
 
             <button class="continue-btn" onclick="hideBrowserOverlay()">
                 Continue to Preview Mode
@@ -288,6 +297,8 @@
             }
 
             btn.addEventListener('click', async () => {
+                const statusEl = document.getElementById('status');
+                statusEl.style.display = 'block';
                 statusEl.textContent = '';
                 addLine('🚀 Starting Susuwatari files download...\n');
 
