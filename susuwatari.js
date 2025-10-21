@@ -1996,6 +1996,70 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
+/**
+ * Estimate BPM from raw audio samples (Float32Array)
+ * @param {Float32Array} audioArray - raw PCM samples
+ * @param {number} sampleRate - sample rate (e.g., 44100)
+ * @returns {number} estimated BPM
+ */
+function detectBPM(audioArray, sampleRate = 44100) {
+    // Step 1: Compute energy envelope
+    const frameSize = 1024; // ~23ms at 44.1kHz
+    const energies = [];
+    for (let i = 0; i < audioArray.length; i += frameSize) {
+        let sum = 0;
+        for (let j = 0; j < frameSize && i + j < audioArray.length; j++) {
+            const sample = audioArray[i + j];
+            sum += sample * sample; // energy = squared amplitude
+        }
+        energies.push(sum);
+    }
+
+    // Step 2: Normalize energies
+    const maxEnergy = Math.max(...energies);
+    const normEnergies = energies.map(e => e / maxEnergy);
+
+    // Step 3: Peak picking
+    const threshold = 0.3; // tweakable
+    const peaks = [];
+    for (let i = 1; i < normEnergies.length - 1; i++) {
+        if (normEnergies[i] > threshold &&
+            normEnergies[i] > normEnergies[i - 1] &&
+            normEnergies[i] > normEnergies[i + 1]) {
+            peaks.push(i * frameSize);
+        }
+    }
+
+    if (peaks.length < 2) return 0; // not enough data
+
+    // Step 4: Compute intervals between peaks
+    const intervals = [];
+    for (let i = 1; i < peaks.length; i++) {
+        intervals.push((peaks[i] - peaks[i - 1]) / sampleRate);
+    }
+
+    // Step 5: Histogram of intervals
+    const histogram = {};
+    intervals.forEach(interval => {
+        const bpm = Math.round(60 / interval);
+        if (bpm >= 60 && bpm <= 200) { // reasonable tempo range
+            histogram[bpm] = (histogram[bpm] || 0) + 1;
+        }
+    });
+
+    // Step 6: Pick most common BPM
+    let bestBPM = 0, maxCount = 0;
+    for (const bpm in histogram) {
+        if (histogram[bpm] > maxCount) {
+            bestBPM = bpm;
+            maxCount = histogram[bpm];
+        }
+    }
+
+    return bestBPM;
+}
+
+ 
 
 
 
