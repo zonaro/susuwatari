@@ -1937,7 +1937,7 @@ document.addEventListener('DOMContentLoaded', function () {
     susuwatariInstance = new SusuwatariCanvas();
 
     // Detect which wallpaper engine is running
-    const isBrowserMode = this.location.href == 'https://zonaro.github.io/susuwatari/';
+    const isBrowserMode = this.location.href == 'https://zonaro.github.io/susuwatari/' || this.location.search.includes('browser=1');
     const isWallpaperEngine = typeof window.wallpaperRegisterAudioListener !== 'undefined';
     const isLivelyWallpaper = !isBrowserMode && !isWallpaperEngine;
 
