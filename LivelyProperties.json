@@ -87,6 +87,15 @@
         "value": 5,
         "help": "Time to rest when Susuwatari become dizzy from rapid mouse movement"
     },
+    "zigzagMinDistance": {
+        "max": 400,
+        "min": 50,
+        "step": 10,
+        "text": "Zigzag Effect Min Distance",
+        "type": "slider",
+        "value": 150,
+        "help": "Minimum distance from Susuwatari required to trigger zigzag scatter effect"
+    },
     "backgroundImageUrl": {
         "text": "Background Image URL",
         "type": "textbox",

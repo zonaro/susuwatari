@@ -14,16 +14,12 @@
 		{
 			"label": "Copiar para Wallpaper Engine",
 			"type": "shell",
-			"command": "robocopy",
+			"command": "powershell",
 			"args": [
-				".",
-				"D:\\SteamLibrary\\steamapps\\common\\wallpaper_engine\\projects\\myprojects\\susuwatari",
-				"/E",
-				"/XD",
-				".vscode",
-				".vs",
-				".github",
-				".git"
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"copy-to-wallpaper-engine.ps1"
 			],
 			"isBackground": false,
 			"group": "build",

@@ -15,9 +15,12 @@ class SusuwatariCanvas {
         this.particleSize = 18;
         this.fleeAcceleration = 4.0;
         this.maxRunDistance = 300; // Maximum distance before getting tired (configurable)
-        this.sleepTime = 10; // Time in seconds before Susuwatari fall asleep when mouse is still
-        this.sleepEnabled = true; // Toggle to enable/disable sleep system
+        this.sleepStartTime = "22:00"; // Sleep time start (24h format)
+        this.sleepEndTime = "06:00"; // Sleep time end (24h format) 
+        this.sleepTimeout = 10; // Time in seconds before Susuwatari fall asleep when mouse is still during sleep hours
+        this.minVolumeToKeepAwake = 0.1; // Minimum audio volume required to keep Susuwatari awake (0.0 to 1.0)
         this.restTimeout = 5; // Time in seconds to rest when dizzy/tired (configurable)
+        this.zigzagMinDistance = 150; // Minimum distance for zigzag effect (configurable)
 
         // Limits for manual interaction
         this.minSize = 10;
@@ -54,6 +57,11 @@ class SusuwatariCanvas {
         // Mouse movement tracking for dizziness detection
         this.mouseHistory = []; // Track recent mouse positions
         this.maxMouseHistoryLength = 20; // Keep last 20 positions (increased from 10)
+
+        // Zigzag detection system
+        this.zigzagHistory = []; // Track mouse positions for zigzag detection
+        this.lastZigzagTime = 0; // Time of last zigzag effect
+        this.zigzagCooldown = 3000; // 3 seconds cooldown between zigzag effects
 
         // Shoe image for rendering
         this.shoeImage = new Image();
@@ -137,6 +145,47 @@ class SusuwatariCanvas {
             livelyPropertyListener('backgroundImageUrl', dataURL);
             console.log('Updated Lively Wallpaper backgroundImageUrl property with base64 data');
         }
+    }
+
+    // Check if current time is within sleep hours
+    isWithinSleepHours() {
+        const now = new Date();
+        const currentTime = now.getHours() * 60 + now.getMinutes(); // Current time in minutes since midnight
+
+        // Parse sleep start and end times
+        const parseTime = (timeStr) => {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+        };
+
+        const sleepStart = parseTime(this.sleepStartTime);
+        const sleepEnd = parseTime(this.sleepEndTime);
+
+        // Handle overnight sleep periods (e.g., 22:00 to 06:00)
+        if (sleepStart > sleepEnd) {
+            // Sleep period crosses midnight
+            return currentTime >= sleepStart || currentTime <= sleepEnd;
+        } else {
+            // Sleep period within same day
+            return currentTime >= sleepStart && currentTime <= sleepEnd;
+        }
+    }
+
+    // Get current audio volume level (0.0 to 1.0)
+    getCurrentAudioVolume() {
+        if (!this.audioVisualizationEnabled || !this.smoothedAudioData) {
+            return 0.0;
+        }
+
+        // Calculate RMS (Root Mean Square) for overall volume
+        let sum = 0;
+        for (let i = 0; i < this.smoothedAudioData.length; i++) {
+            sum += this.smoothedAudioData[i] * this.smoothedAudioData[i];
+        }
+        const rms = Math.sqrt(sum / this.smoothedAudioData.length);
+
+        // Apply some smoothing and normalization
+        return Math.min(rms * 2.0, 1.0); // Multiply by 2 for better sensitivity, cap at 1.0
     }
 
     wallpaperAudioListener(audioArray) {
@@ -285,26 +334,28 @@ class SusuwatariCanvas {
             this.maxRunDistance = properties.max_run_distance.value;
         }
 
-        if (properties.sleep_time) {
-            this.sleepTime = properties.sleep_time.value;
+        if (properties.sleep_start_time) {
+            this.sleepStartTime = properties.sleep_start_time.value;
         }
 
-        if (properties.sleep_enabled) {
-            this.sleepEnabled = properties.sleep_enabled.value;
+        if (properties.sleep_end_time) {
+            this.sleepEndTime = properties.sleep_end_time.value;
+        }
 
-            // If sleep is disabled, wake up all sleeping particles
-            if (!this.sleepEnabled) {
-                this.particles.forEach(particle => {
-                    if (particle.isSleeping) {
-                        particle.isSleeping = false;
-                        particle.zzz = []; // Clear sleep animation
-                    }
-                });
-            }
+        if (properties.sleep_timeout) {
+            this.sleepTimeout = properties.sleep_timeout.value;
+        }
+
+        if (properties.min_volume_to_keep_awake) {
+            this.minVolumeToKeepAwake = properties.min_volume_to_keep_awake.value;
         }
 
         if (properties.rest_timeout) {
             this.restTimeout = properties.rest_timeout.value;
+        }
+
+        if (properties.zigzag_min_distance) {
+            this.zigzagMinDistance = properties.zigzag_min_distance.value;
         }
 
         // Background image property: Local files via FilePicker/FolderDropdown, URLs only via text input
@@ -472,11 +523,24 @@ class SusuwatariCanvas {
             // Keep only recent history (last 1000ms for more data)
             this.mouseHistory = this.mouseHistory.filter(pos => currentTime - pos.time < 1000);
 
+            // Add current position to zigzag history
+            this.zigzagHistory.push({
+                x: this.mouseX,
+                y: this.mouseY,
+                time: currentTime
+            });
+
+            // Keep only recent zigzag history (last 2000ms)
+            this.zigzagHistory = this.zigzagHistory.filter(pos => currentTime - pos.time < 2000);
+
+            // Check for zigzag pattern
+            this.checkForZigzag();
+
             // Check for dizziness-inducing rapid movement around Susuwatari
             this.checkForDizziness();
 
-            // Wake up all sleeping Susuwatari when mouse moves (only if sleep is enabled)
-            if (this.sleepEnabled) {
+            // Wake up all sleeping Susuwatari when mouse moves (only during sleep hours when volume allows sleep)
+            if (this.isWithinSleepHours() && this.getCurrentAudioVolume() < this.minVolumeToKeepAwake) {
                 this.particles.forEach(particle => {
                     if (particle.isSleeping) {
                         particle.isSleeping = false;
@@ -584,11 +648,64 @@ class SusuwatariCanvas {
     }
 
     createParticle(x = null, y = null) {
-        const posX = x !== null ? x : Math.random() * this.canvas.width;
-        const posY = y !== null ? y : Math.random() * this.canvas.height;
+        let posX = x !== null ? x : Math.random() * this.canvas.width;
+        let posY = y !== null ? y : Math.random() * this.canvas.height;
 
         // Create size variation: between 85% and 115% of base size
         const sizeVariation = 0.85 + Math.random() * 0.3; // 0.85 to 1.15
+        const particleSize = this.particleSize * sizeVariation;
+
+        // If specific coordinates provided, find a safe position nearby
+        if (x !== null && y !== null) {
+            let attempts = 0;
+            const maxAttempts = 15;
+
+            while (attempts < maxAttempts) {
+                let hasCollision = false;
+
+                // Check collision with existing Susuwatari
+                for (let particle of this.particles) {
+                    const dx = posX - particle.x;
+                    const dy = posY - particle.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const minDistance = (particleSize + particle.size) / 2 + 15; // Buffer for creation
+
+                    if (distance < minDistance) {
+                        hasCollision = true;
+                        break;
+                    }
+                }
+
+                // Check collision with collectibles
+                if (!hasCollision) {
+                    for (let collectible of this.collectibles) {
+                        const dx = posX - collectible.x;
+                        const dy = posY - collectible.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const minDistance = (particleSize + collectible.size) / 2 + 15; // Buffer for creation
+
+                        if (distance < minDistance) {
+                            hasCollision = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!hasCollision) {
+                    break; // Found safe position
+                }
+
+                // Try a new position nearby
+                const offsetRadius = 30 + (attempts * 5);
+                const angle = Math.random() * Math.PI * 2;
+                posX = Math.max(particleSize / 2, Math.min(this.canvas.width - particleSize / 2,
+                    x + Math.cos(angle) * offsetRadius));
+                posY = Math.max(particleSize / 2, Math.min(this.canvas.height - particleSize / 2,
+                    y + Math.sin(angle) * offsetRadius));
+
+                attempts++;
+            }
+        }
 
         // Generate unique spiky shape for each Susuwatari
         const spikes = 75 + Math.floor(Math.random() * 45); // 75-120 spikes (3x mais)
@@ -608,7 +725,7 @@ class SusuwatariCanvas {
             originalY: posY,
             baseSize: this.particleSize, // Base size
             sizeMultiplier: sizeVariation, // Unique multiplier for this Susuwatari
-            size: this.particleSize * sizeVariation, // Final size with variation
+            size: particleSize, // Final size with variation
             spikeCount: spikes, // Unique number of spikes
             spikePattern: spikePattern, // Unique spike pattern
             rotation: Math.random() * Math.PI * 2, // Unique fixed rotation for each Susuwatari (0 to 2π)
@@ -672,12 +789,12 @@ class SusuwatariCanvas {
         // Randomly choose between coal stone (33%), colored star (33%), or shoe (33%)
         if (type === undefined) {
             const rand = Math.random();
-            if (rand < 0.33) {
-                type = 'coal';
-            } else if (rand < 0.66) {
+            if (rand < 0.20) {
+                type = 'shoe';
+            } else if (rand < 0.50) {
                 type = 'star';
             } else {
-                type = 'shoe';
+                type = 'coal';
             }
         }
 
@@ -720,9 +837,61 @@ class SusuwatariCanvas {
             collectibleSize = avgSusuwatariSize * sizeMultiplier;
         }
 
+        // Find a safe position that doesn't collide with existing Susuwatari and collectibles
+        let safeX = x;
+        let safeY = y;
+        let attempts = 0;
+        const maxAttempts = 20;
+
+        while (attempts < maxAttempts) {
+            let hasCollision = false;
+
+            // Check collision with Susuwatari
+            for (let particle of this.particles) {
+                const dx = safeX - particle.x;
+                const dy = safeY - particle.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const minDistance = (collectibleSize + particle.size) / 2 + 20; // Extra buffer for creation
+
+                if (distance < minDistance) {
+                    hasCollision = true;
+                    break;
+                }
+            }
+
+            // Check collision with existing collectibles
+            if (!hasCollision) {
+                for (let existingCollectible of this.collectibles) {
+                    const dx = safeX - existingCollectible.x;
+                    const dy = safeY - existingCollectible.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const minDistance = (collectibleSize + existingCollectible.size) / 2 + 15; // Buffer for creation
+
+                    if (distance < minDistance) {
+                        hasCollision = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!hasCollision) {
+                break; // Found safe position
+            }
+
+            // Try a new random position nearby
+            const offsetRadius = 50 + (attempts * 10); // Expand search radius with attempts
+            const angle = Math.random() * Math.PI * 2;
+            safeX = Math.max(collectibleSize / 2, Math.min(this.canvas.width - collectibleSize / 2,
+                x + Math.cos(angle) * offsetRadius));
+            safeY = Math.max(collectibleSize / 2, Math.min(this.canvas.height - collectibleSize / 2,
+                y + Math.sin(angle) * offsetRadius));
+
+            attempts++;
+        }
+
         const collectible = {
-            x: x,
-            y: y,
+            x: safeX,
+            y: safeY,
             type: type,
             size: collectibleSize,
             color: type === 'coal' ? '#111111' : (type === 'star' ? this.getRandomStarColor() : '#FFD700'), // Yellow for shoes
@@ -1381,10 +1550,33 @@ class SusuwatariCanvas {
                     decelerationFactor = distance < 15 ?
                         Math.max(0.3, distance / 15) : // More gradual deceleration
                         1.0;
-                } const finalSpeed = baseSpeed * accelerationFactor * decelerationFactor * energyFactor;
+                }
 
-                particle.velocityX = deltaX * finalSpeed;
-                particle.velocityY = deltaY * finalSpeed;
+                const finalSpeed = baseSpeed * accelerationFactor * decelerationFactor * energyFactor;
+
+                // Calculate base movement velocity
+                let velocityX = deltaX * finalSpeed;
+                let velocityY = deltaY * finalSpeed;
+
+                // Add repulsive forces from nearby shoes only (coal and stars are collected automatically)
+                this.collectibles.forEach(collectible => {
+                    // Only apply repulsion to shoes, not to coal/stars that should be collected
+                    if (collectible.type === 'shoe' && (!particle.isSeekingCollectible || particle.targetCollectible !== collectible)) {
+                        const dx = particle.x - collectible.x;
+                        const dy = particle.y - collectible.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const repulsionDistance = (particle.size + collectible.size) / 2 + 30; // Repulsion zone
+
+                        if (distance < repulsionDistance && distance > 0) {
+                            const repulsionStrength = (repulsionDistance - distance) / repulsionDistance;
+                            const repulsionForce = repulsionStrength * 0.02; // Gentle repulsion
+
+                            velocityX += (dx / distance) * repulsionForce;
+                            velocityY += (dy / distance) * repulsionForce;
+                        }
+                    }
+                }); particle.velocityX = velocityX;
+                particle.velocityY = velocityY;
 
                 // Calcular intensidade do movimento para o rastro
                 const movementSpeed = Math.sqrt(particle.velocityX * particle.velocityX + particle.velocityY * particle.velocityY);
@@ -1450,6 +1642,294 @@ class SusuwatariCanvas {
                 }
             }
         });
+
+        // Check and resolve collisions between Susuwatari and collectibles
+        this.handleCollisions();
+    }
+
+    handleCollisions() {
+        // Check collisions between Susuwatari and collectibles
+        const collectiblesToRemove = [];
+        const particlesToRemove = [];
+
+        this.particles.forEach((particle, particleIndex) => {
+            this.collectibles.forEach((collectible, collectibleIndex) => {
+                const dx = particle.x - collectible.x;
+                const dy = particle.y - collectible.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const collisionDistance = (particle.size + collectible.size) / 2 + 2; // Collision threshold
+
+                if (distance < collisionDistance && distance > 0) {
+                    // Collision detected
+                    if (collectible.type === 'coal' || collectible.type === 'star') {
+                        // Collect coal and star items
+
+                        // Check if coal is larger than Susuwatari - explosion case
+                        if (collectible.type === 'coal' && collectible.size > particle.size) {
+                            // Create explosion effect for the Susuwatari
+                            this.createSmokeExplosion(particle.x, particle.y, particle.size);
+                            this.createSootStain(particle.x, particle.y, particle.size * 1.2);
+
+                            // Mark Susuwatari for removal
+                            if (!particlesToRemove.includes(particleIndex)) {
+                                particlesToRemove.push(particleIndex);
+                            }
+
+                            console.log('Susuwatari exploded by large coal!');
+                        } else {
+                            // Normal collection - Susuwatari survives
+                            console.log(`Susuwatari collected ${collectible.type}!`);
+                        }
+
+                        // Create collection effect
+                        this.createCollectionEffect(collectible.x, collectible.y, collectible.type, collectible.color);
+
+                        // Leave soot stain for coal
+                        if (collectible.type === 'coal') {
+                            this.createSootStain(collectible.x, collectible.y, collectible.size * 1.2);
+                        }
+
+                        // Reset any Susuwatari targeting this collectible
+                        this.particles.forEach(p => {
+                            if (p.targetCollectible === collectible) {
+                                p.targetCollectible = null;
+                                p.isSeekingCollectible = false;
+                            }
+                        });
+
+                        // Mark collectible for removal
+                        if (!collectiblesToRemove.includes(collectibleIndex)) {
+                            collectiblesToRemove.push(collectibleIndex);
+                        }
+
+                    } else if (collectible.type === 'shoe') {
+                        // Shoes act as physical obstacles - push Susuwatari away
+                        const overlap = collisionDistance - distance;
+                        const separationX = (dx / distance) * overlap;
+                        const separationY = (dy / distance) * overlap;
+
+                        // Move particle away from shoe
+                        particle.x += separationX;
+                        particle.y += separationY;
+
+                        // Update particle's target position
+                        particle.targetX = particle.x;
+                        particle.targetY = particle.y;
+
+                        // Keep particle within canvas bounds
+                        particle.x = Math.max(particle.size / 2, Math.min(this.canvas.width - particle.size / 2, particle.x));
+                        particle.y = Math.max(particle.size / 2, Math.min(this.canvas.height - particle.size / 2, particle.y));
+                        particle.targetX = particle.x;
+                        particle.targetY = particle.y;
+
+                        // Add small visual effect at collision point
+                        if (Math.random() < 0.05) { // 5% chance for small effect
+                            this.createTrailParticle(
+                                (particle.x + collectible.x) / 2,
+                                (particle.y + collectible.y) / 2,
+                                Math.min(particle.size, collectible.size) * 0.2,
+                                0.3
+                            );
+                        }
+                    }
+                }
+            });
+        });
+
+        // Remove collected collectibles (in reverse order to avoid index issues)
+        collectiblesToRemove.sort((a, b) => b - a).forEach(index => {
+            this.collectibles.splice(index, 1);
+        });
+
+        // Remove exploded Susuwatari (in reverse order to avoid index issues)
+        particlesToRemove.sort((a, b) => b - a).forEach(index => {
+            this.particles.splice(index, 1);
+        });
+
+        // Update UI if particles were removed
+        if (particlesToRemove.length > 0) {
+            this.updateUI();
+        }
+
+        // Reassign collectibles if any were collected
+        if (collectiblesToRemove.length > 0) {
+            this.reassignAllCollectibles();
+        }
+
+        // Check collisions between Susuwatari themselves with directional pushing logic
+        for (let i = 0; i < this.particles.length; i++) {
+            for (let j = i + 1; j < this.particles.length; j++) {
+                const particle1 = this.particles[i];
+                const particle2 = this.particles[j];
+
+                const dx = particle1.x - particle2.x;
+                const dy = particle1.y - particle2.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const minDistance = (particle1.size + particle2.size) / 2 + 2; // Add 2px buffer
+
+                if (distance < minDistance && distance > 0) {
+                    // Calculate movement speeds to determine who is moving
+                    const particle1Speed = Math.sqrt(particle1.velocityX * particle1.velocityX + particle1.velocityY * particle1.velocityY);
+                    const particle2Speed = Math.sqrt(particle2.velocityX * particle2.velocityX + particle2.velocityY * particle2.velocityY);
+
+                    // Consider particles as "moving" if speed > threshold
+                    const movementThreshold = 0.1;
+                    const particle1IsMoving = particle1Speed > movementThreshold;
+                    const particle2IsMoving = particle2Speed > movementThreshold;
+
+                    const overlap = minDistance - distance;
+                    const separationX = (dx / distance) * overlap;
+                    const separationY = (dy / distance) * overlap;
+
+                    if (particle1IsMoving && !particle2IsMoving) {
+                        // Particle1 is moving, particle2 is stationary - particle1 pushes particle2
+                        particle2.x -= separationX;
+                        particle2.y -= separationY;
+                        particle2.targetX = particle2.x;
+                        particle2.targetY = particle2.y;
+
+                        // Create stronger pushing effect - give the pushed particle some momentum
+                        particle2.velocityX = -separationX * 0.3; // Add momentum in push direction
+                        particle2.velocityY = -separationY * 0.3;
+
+                        // Add small visual effect at collision
+                        if (Math.random() < 0.08) {
+                            this.createTrailParticle(
+                                (particle1.x + particle2.x) / 2,
+                                (particle1.y + particle2.y) / 2,
+                                Math.min(particle1.size, particle2.size) * 0.15,
+                                0.4
+                            );
+                        }
+
+                    } else if (!particle1IsMoving && particle2IsMoving) {
+                        // Particle2 is moving, particle1 is stationary - particle2 pushes particle1
+                        particle1.x += separationX;
+                        particle1.y += separationY;
+                        particle1.targetX = particle1.x;
+                        particle1.targetY = particle1.y;
+
+                        // Create stronger pushing effect - give the pushed particle some momentum
+                        particle1.velocityX = separationX * 0.3; // Add momentum in push direction
+                        particle1.velocityY = separationY * 0.3;
+
+                        // Add small visual effect at collision
+                        if (Math.random() < 0.08) {
+                            this.createTrailParticle(
+                                (particle1.x + particle2.x) / 2,
+                                (particle1.y + particle2.y) / 2,
+                                Math.min(particle1.size, particle2.size) * 0.15,
+                                0.4
+                            );
+                        }
+
+                    } else if (particle1IsMoving && particle2IsMoving) {
+                        // Both are moving - larger one pushes smaller one
+                        if (particle1.size > particle2.size) {
+                            // Particle1 is larger - pushes particle2
+                            particle2.x -= separationX * 0.8;
+                            particle2.y -= separationY * 0.8;
+                            particle1.x += separationX * 0.2; // Larger one moves less
+                            particle1.y += separationY * 0.2;
+
+                            // Add momentum to the smaller particle being pushed
+                            particle2.velocityX += -separationX * 0.2;
+                            particle2.velocityY += -separationY * 0.2;
+
+                        } else if (particle2.size > particle1.size) {
+                            // Particle2 is larger - pushes particle1
+                            particle1.x += separationX * 0.8;
+                            particle1.y += separationY * 0.8;
+                            particle2.x -= separationX * 0.2; // Larger one moves less
+                            particle2.y -= separationY * 0.2;
+
+                            // Add momentum to the smaller particle being pushed
+                            particle1.velocityX += separationX * 0.2;
+                            particle1.velocityY += separationY * 0.2;
+
+                        } else {
+                            // Equal size - standard mutual separation
+                            particle1.x += separationX * 0.5;
+                            particle1.y += separationY * 0.5;
+                            particle2.x -= separationX * 0.5;
+                            particle2.y -= separationY * 0.5;
+                        }
+
+                        // Update target positions for both moving particles
+                        particle1.targetX = particle1.x;
+                        particle1.targetY = particle1.y;
+                        particle2.targetX = particle2.x;
+                        particle2.targetY = particle2.y;
+
+                        // Enhanced collision effect for moving particles
+                        if (Math.random() < 0.12) {
+                            this.createTrailParticle(
+                                (particle1.x + particle2.x) / 2,
+                                (particle1.y + particle2.y) / 2,
+                                Math.min(particle1.size, particle2.size) * 0.2,
+                                0.6
+                            );
+                        }
+
+                    } else {
+                        // Both are stationary - gentle mutual separation (original behavior)
+                        particle1.x += separationX * 0.5;
+                        particle1.y += separationY * 0.5;
+                        particle2.x -= separationX * 0.5;
+                        particle2.y -= separationY * 0.5;
+
+                        particle1.targetX = particle1.x;
+                        particle1.targetY = particle1.y;
+                        particle2.targetX = particle2.x;
+                        particle2.targetY = particle2.y;
+                    }
+
+                    // Keep particles within canvas bounds
+                    particle1.x = Math.max(particle1.size / 2, Math.min(this.canvas.width - particle1.size / 2, particle1.x));
+                    particle1.y = Math.max(particle1.size / 2, Math.min(this.canvas.height - particle1.size / 2, particle1.y));
+                    particle2.x = Math.max(particle2.size / 2, Math.min(this.canvas.width - particle2.size / 2, particle2.x));
+                    particle2.y = Math.max(particle2.size / 2, Math.min(this.canvas.height - particle2.size / 2, particle2.y));
+
+                    // Ensure target positions are also within bounds
+                    particle1.targetX = Math.max(particle1.size / 2, Math.min(this.canvas.width - particle1.size / 2, particle1.targetX));
+                    particle1.targetY = Math.max(particle1.size / 2, Math.min(this.canvas.height - particle1.size / 2, particle1.targetY));
+                    particle2.targetX = Math.max(particle2.size / 2, Math.min(this.canvas.width - particle2.size / 2, particle2.targetX));
+                    particle2.targetY = Math.max(particle2.size / 2, Math.min(this.canvas.height - particle2.size / 2, particle2.targetY));
+                }
+            }
+        }
+
+        // Check collisions between collectibles themselves
+        for (let i = 0; i < this.collectibles.length; i++) {
+            for (let j = i + 1; j < this.collectibles.length; j++) {
+                const collectible1 = this.collectibles[i];
+                const collectible2 = this.collectibles[j];
+
+                const dx = collectible1.x - collectible2.x;
+                const dy = collectible1.y - collectible2.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const minDistance = (collectible1.size + collectible2.size) / 2 + 3; // Add 3px buffer
+
+                if (distance < minDistance && distance > 0) {
+                    // Collision detected - push them apart
+                    const overlap = minDistance - distance;
+                    const separationX = (dx / distance) * overlap * 0.5;
+                    const separationY = (dy / distance) * overlap * 0.5;
+
+                    // Move collectibles away from each other
+                    collectible1.x += separationX;
+                    collectible1.y += separationY;
+                    collectible2.x -= separationX;
+                    collectible2.y -= separationY;
+
+                    // Keep within canvas bounds
+                    collectible1.x = Math.max(collectible1.size / 2, Math.min(this.canvas.width - collectible1.size / 2, collectible1.x));
+                    collectible1.y = Math.max(collectible1.size / 2, Math.min(this.canvas.height - collectible1.size / 2, collectible1.y));
+                    collectible2.x = Math.max(collectible2.size / 2, Math.min(this.canvas.width - collectible2.size / 2, collectible2.x));
+                    collectible2.y = Math.max(collectible2.size / 2, Math.min(this.canvas.height - collectible2.size / 2, collectible2.y));
+                }
+            }
+        }
     }
 
     updateSleepSystem() {
@@ -1480,51 +1960,62 @@ class SusuwatariCanvas {
             }
         });
 
-        // Update sleep system (only if sleep is enabled)
-        if (this.sleepEnabled && (this.isMouseStill || Date.now() - this.lastMouseMove > this.sleepTime * 1000)) {
-            const currentTime = Date.now();
+        // Update sleep system based on time schedule and audio volume
+        const isWithinSleepHours = this.isWithinSleepHours();
+        const currentVolume = this.getCurrentAudioVolume();
+        const shouldStayAwakeFromVolume = currentVolume >= this.minVolumeToKeepAwake;
 
-            this.particles.forEach(particle => {
-                // Don't make fleeing, tired, dizzy, or collectible-seeking particles sleep
-                if (particle.isFleeing || particle.isTired || particle.isDizzy || particle.isSeekingCollectible) {
-                    return;
+        this.particles.forEach(particle => {
+            // Don't make fleeing, tired, dizzy, or collectible-seeking particles sleep
+            if (particle.isFleeing || particle.isTired || particle.isDizzy || particle.isSeekingCollectible) {
+                // Wake up if outside sleep hours, volume too loud, or if actively fleeing/busy
+                if (particle.isSleeping && (!isWithinSleepHours || shouldStayAwakeFromVolume ||
+                    particle.isFleeing || particle.isTired || particle.isDizzy || particle.isSeekingCollectible)) {
+                    particle.isSleeping = false;
+                    particle.zzz = []; // Clear sleep animation
                 }
+                return;
+            }
 
-                // Check if particle should start sleeping
-                if (!particle.isSleeping && Date.now() - this.lastMouseMove > this.sleepTime * 1000) {
-                    particle.isSleeping = true;
-                    particle.sleepStartTime = currentTime;
-                    particle.zzz = []; // Initialize Z animation array
-                }
+            // Check if particle should start sleeping (only during sleep hours, after timeout, and when volume is below threshold)
+            if (!particle.isSleeping && isWithinSleepHours && !shouldStayAwakeFromVolume &&
+                Date.now() - this.lastMouseMove > this.sleepTimeout * 1000) {
+                particle.isSleeping = true;
+                particle.sleepStartTime = Date.now();
+                particle.zzz = []; // Initialize Z animation array
+            }
 
-                // Update Z animation for sleeping particles
-                if (particle.isSleeping) {
-                    // Add new Z every 1.5-2.5 seconds
-                    const timeSinceSleep = currentTime - particle.sleepStartTime;
-                    const zCount = Math.floor(timeSinceSleep / 2000); // New Z every 2 seconds
+            // Wake up particle if outside sleep hours or volume is too loud to allow sleep
+            if (particle.isSleeping && (!isWithinSleepHours || shouldStayAwakeFromVolume)) {
+                particle.isSleeping = false;
+                particle.zzz = []; // Clear sleep animation
+            }            // Update Z animation for sleeping particles
+            if (particle.isSleeping && isWithinSleepHours) {
+                // Add new Z every 1.5-2.5 seconds
+                const timeSinceSleep = Date.now() - particle.sleepStartTime;
+                const zCount = Math.floor(timeSinceSleep / 2000); // New Z every 2 seconds
 
-                    if (particle.zzz.length < zCount + 1 && particle.zzz.length < 3) {
-                        particle.zzz.push({
-                            x: particle.x + (Math.random() - 0.5) * 30 + particle.size * 0.3,
-                            y: particle.y - particle.size * 0.5 - (particle.zzz.length * 15),
-                            size: 8 + Math.random() * 4,
-                            opacity: 1.0,
-                            lifetime: 0
-                        });
-                    }
-
-                    // Update existing Z's
-                    particle.zzz.forEach(z => {
-                        z.lifetime += 16; // Assuming 60fps
-                        z.y -= 0.3; // Float upward slowly
-                        z.opacity = Math.max(0, 1.0 - z.lifetime / 3000); // Fade over 3 seconds
+                if (particle.zzz.length < zCount + 1 && particle.zzz.length < 3) {
+                    particle.zzz.push({
+                        x: particle.x + (Math.random() - 0.5) * 30 + particle.size * 0.3,
+                        y: particle.y - particle.size * 0.5 - (particle.zzz.length * 15),
+                        size: 8 + Math.random() * 4,
+                        opacity: 1.0,
+                        lifetime: 0
                     });
-
-                    // Remove old Z's
-                    particle.zzz = particle.zzz.filter(z => z.opacity > 0);
                 }
-            });
-        }
+
+                // Update existing Z's
+                particle.zzz.forEach(z => {
+                    z.lifetime += 16; // Assuming 60fps
+                    z.y -= 0.3; // Float upward slowly
+                    z.opacity = Math.max(0, 1.0 - z.lifetime / 3000); // Fade over 3 seconds
+                });
+
+                // Remove old Z's
+                particle.zzz = particle.zzz.filter(z => z.opacity > 0);
+            }
+        });
     }
 
     updateCollectibles() {
@@ -1578,53 +2069,9 @@ class SusuwatariCanvas {
                 }
             } else {
                 // Regular handling for coal and stars (single Susuwatari assignment)
+                // Collection is now handled by handleCollisions() method, so we only manage assignments here
                 if (collectible.assignedTo) {
                     const susuwatari = collectible.assignedTo;
-                    const distance = Math.sqrt(
-                        Math.pow(susuwatari.x - collectible.x, 2) +
-                        Math.pow(susuwatari.y - collectible.y, 2)
-                    );
-
-                    // Collection distance threshold
-                    const collectionDistance = susuwatari.size / 2 + collectible.size;
-
-                    if (distance < collectionDistance) {
-                        // Check if collectible is larger than Susuwatari - if so, explode!
-                        if (collectible.isLargerThanSusuwatari && collectible.size > susuwatari.size) {
-                            // Create explosion effect like when clicked
-                            this.createSmokeExplosion(susuwatari.x, susuwatari.y, susuwatari.size);
-
-                            // Remove the Susuwatari that touched the large collectible
-                            const particleIndex = this.particles.indexOf(susuwatari);
-                            if (particleIndex > -1) {
-                                this.particles.splice(particleIndex, 1);
-                            }
-
-                            // Create collection effect for the collectible
-                            this.createCollectionEffect(collectible.x, collectible.y, collectible.type, collectible.color);
-
-                            // If it's a coal stone, leave soot stain at the location
-                            if (collectible.type === 'coal') {
-                                this.createSootStain(collectible.x, collectible.y, collectible.size * 1.5);
-                            }
-
-                            return false; // Remove collectible
-                        } else {
-                            // Normal collection for smaller collectibles
-                            susuwatari.targetCollectible = null;
-                            susuwatari.isSeekingCollectible = false;
-
-                            // Create collection effect
-                            this.createCollectionEffect(collectible.x, collectible.y, collectible.type, collectible.color);
-
-                            // If it's a coal stone, leave soot stain at the location
-                            if (collectible.type === 'coal') {
-                                this.createSootStain(collectible.x, collectible.y, collectible.size * 1.5);
-                            }
-
-                            return false; // Remove collectible
-                        }
-                    }
 
                     // If Susuwatari became unavailable (sleeping, dizzy, etc.), reassign
                     if (susuwatari.isSleeping || susuwatari.isDizzy) {
@@ -1915,6 +2362,123 @@ class SusuwatariCanvas {
         particle.spiralRotationSpeed = 0.05 + Math.random() * 0.1; // Random rotation speed (0.05-0.15)
     }
 
+    checkForZigzag() {
+        const currentTime = Date.now();
+
+        // Check cooldown
+        if (currentTime - this.lastZigzagTime < this.zigzagCooldown) return;
+
+        // Need at least 8 positions to detect zigzag
+        if (this.zigzagHistory.length < 8) return;
+
+        // Check if mouse is far enough from all Susuwatari
+        let isMouseAway = true;
+        for (let particle of this.particles) {
+            const distance = Math.sqrt(
+                Math.pow(particle.x - this.mouseX, 2) +
+                Math.pow(particle.y - this.mouseY, 2)
+            );
+            if (distance < this.zigzagMinDistance) {
+                isMouseAway = false;
+                break;
+            }
+        }
+
+        if (!isMouseAway) return;
+
+        // Analyze movement pattern for zigzag
+        const recentPositions = this.zigzagHistory.slice(-8); // Last 8 positions
+        let directionChanges = 0;
+        let totalDistance = 0;
+
+        for (let i = 2; i < recentPositions.length; i++) {
+            const prev = recentPositions[i - 2];
+            const curr = recentPositions[i - 1];
+            const next = recentPositions[i];
+
+            // Calculate vectors
+            const vec1 = {
+                x: curr.x - prev.x,
+                y: curr.y - prev.y
+            };
+            const vec2 = {
+                x: next.x - curr.x,
+                y: next.y - curr.y
+            };
+
+            // Calculate movement distance
+            const segmentDistance = Math.sqrt(vec2.x * vec2.x + vec2.y * vec2.y);
+            totalDistance += segmentDistance;
+
+            // Calculate angle between vectors (direction change)
+            const dotProduct = vec1.x * vec2.x + vec1.y * vec2.y;
+            const mag1 = Math.sqrt(vec1.x * vec1.x + vec1.y * vec1.y);
+            const mag2 = Math.sqrt(vec2.x * vec2.x + vec2.y * vec2.y);
+
+            if (mag1 > 0 && mag2 > 0) {
+                const cosAngle = dotProduct / (mag1 * mag2);
+                const angle = Math.acos(Math.max(-1, Math.min(1, cosAngle)));
+
+                // Significant direction change (more than 60 degrees)
+                if (angle > Math.PI / 3) {
+                    directionChanges++;
+                }
+            }
+        }
+
+        // Check for zigzag pattern: multiple direction changes + significant movement
+        const timeSpan = recentPositions[recentPositions.length - 1].time - recentPositions[0].time;
+        const speed = totalDistance / (timeSpan / 1000); // pixels per second
+
+        // Zigzag criteria: at least 3 direction changes, fast movement (>300 px/s)
+        if (directionChanges >= 3 && speed > 300) {
+            console.log(`Zigzag detected! Changes: ${directionChanges}, Speed: ${speed.toFixed(0)} px/s`);
+            this.triggerZigzagEffect();
+        }
+    }
+
+    triggerZigzagEffect() {
+        const currentTime = Date.now();
+        this.lastZigzagTime = currentTime;
+
+        console.log('Triggering zigzag scatter effect for all Susuwatari!');
+
+        // Scatter all Susuwatari randomly across the canvas
+        this.particles.forEach(particle => {
+            // Generate random position
+            const newX = particle.size / 2 + Math.random() * (this.canvas.width - particle.size);
+            const newY = particle.size / 2 + Math.random() * (this.canvas.height - particle.size);
+
+            // Set new target position
+            particle.targetX = newX;
+            particle.targetY = newY;
+
+            // Reset states - they are now scattered and confused
+            particle.isFleeing = false;
+            particle.isTired = false;
+            particle.isDizzy = false;
+            particle.energy = 1.0;
+            particle.isSeekingCollectible = false;
+            particle.targetCollectible = null;
+
+            // Create visual effect at current position
+            this.createSmokeExplosion(particle.x, particle.y, particle.size * 0.5);
+            this.createTrailParticle(particle.x, particle.y, particle.size, 1.0);
+        });
+
+        // Create additional particle effects around the canvas
+        for (let i = 0; i < 5; i++) {
+            const effectX = Math.random() * this.canvas.width;
+            const effectY = Math.random() * this.canvas.height;
+            this.createSmokeExplosion(effectX, effectY, 20);
+        }
+
+        // Reassign all collectibles since Susuwatari were scattered
+        this.reassignAllCollectibles();
+
+        console.log(`Scattered ${this.particles.length} Susuwatari across the canvas!`);
+    }
+
     removeNearestParticle(mouseX, mouseY) {
         if (this.particles.length === 0) return;
 
@@ -2104,8 +2668,8 @@ class SusuwatariCanvas {
 
         this.ctx.globalAlpha = 1;
 
-        // Draw eyes (skip if sleeping and sleep is enabled)
-        if (particle.eyeOpacity > 0 && !(this.sleepEnabled && particle.isSleeping)) {
+        // Draw eyes (skip if sleeping during sleep hours)
+        if (particle.eyeOpacity > 0 && !particle.isSleeping) {
             // Apply bass pulse effect to eye size only
             const bassPulseMultiplier = this.getBassPulseMultiplier(particle);
 
@@ -2231,8 +2795,8 @@ class SusuwatariCanvas {
             this.ctx.fill();
         }
 
-        // Draw sleep Z's if sleeping and sleep is enabled
-        if (this.sleepEnabled && particle.isSleeping && particle.zzz.length > 0) {
+        // Draw sleep Z's if sleeping
+        if (particle.isSleeping && particle.zzz.length > 0) {
             particle.zzz.forEach(z => {
                 this.ctx.globalAlpha = z.opacity;
                 this.ctx.fillStyle = '#ffffff';
@@ -2269,14 +2833,36 @@ class SusuwatariCanvas {
         const neededCount = this.maxParticles - this.particles.length;
         for (let i = 0; i < neededCount; i++) {
             let x, y, attempts = 0;
+            let validPosition = false;
+
             do {
                 x = Math.random() * this.canvas.width;
                 y = Math.random() * this.canvas.height;
                 attempts++;
-            } while (
-                attempts < 10 &&
-                Math.sqrt(Math.pow(x - this.mouseX, 2) + Math.pow(y - this.mouseY, 2)) < this.fleeDistance * 1.5
-            );
+
+                // Check distance from mouse
+                const mouseDistance = Math.sqrt(Math.pow(x - this.mouseX, 2) + Math.pow(y - this.mouseY, 2));
+                if (mouseDistance < this.fleeDistance * 1.5) {
+                    continue; // Too close to mouse
+                }
+
+                // Check distance from collectibles
+                let tooCloseToCollectible = false;
+                for (let collectible of this.collectibles) {
+                    const collectibleDistance = Math.sqrt(Math.pow(x - collectible.x, 2) + Math.pow(y - collectible.y, 2));
+                    const minDistance = (this.particleSize + collectible.size) / 2 + 25; // Buffer distance
+
+                    if (collectibleDistance < minDistance) {
+                        tooCloseToCollectible = true;
+                        break;
+                    }
+                }
+
+                if (!tooCloseToCollectible) {
+                    validPosition = true;
+                }
+
+            } while (!validPosition && attempts < 15);
 
             this.createParticle(x, y);
         }
@@ -2401,9 +2987,12 @@ function livelyPropertyListener(name, val) {
         'bassPulseIntensity': 'bass_pulse_intensity',
         'audioVisualizationEnabled': 'audio_visualization_enabled',
         'maxRunDistance': 'max_run_distance',
-        'sleepTime': 'sleep_time',
-        'sleepEnabled': 'sleep_enabled',
+        'sleepStartTime': 'sleep_start_time',
+        'sleepEndTime': 'sleep_end_time',
+        'sleepTimeout': 'sleep_timeout',
+        'minVolumeToKeepAwake': 'min_volume_to_keep_awake',
         'restTimeout': 'rest_timeout',
+        'zigzagMinDistance': 'zigzag_min_distance',
         'backgroundImageUrl': 'background_image',
         'backgroundImagePicker': 'background_image_picker'
     };
@@ -2477,9 +3066,12 @@ document.addEventListener('DOMContentLoaded', function () {
             'bassPulseIntensity': 1.0,
             'audioVisualizationEnabled': true,
             'maxRunDistance': 300,
-            'sleepTime': 10,
-            'sleepEnabled': true,
+            'sleepStartTime': '22:00',
+            'sleepEndTime': '06:00',
+            'sleepTimeout': 10,
+            'minVolumeToKeepAwake': 0.1,
             'restTimeout': 5,
+            'zigzagMinDistance': 150,
             'backgroundImageUrl': '',
             'backgroundImagePicker': null
         };
@@ -2872,9 +3464,12 @@ function loadBrowserSettings() {
                 bassPulseIntensity: 1.0,
                 audioVisualizationEnabled: true,
                 maxRunDistance: 300,
-                sleepTime: 10,
-                sleepEnabled: true,
+                sleepStartTime: '22:00',
+                sleepEndTime: '06:00',
+                sleepTimeout: 10,
+                minVolumeToKeepAwake: 0.1,
                 restTimeout: 5,
+                zigzagMinDistance: 150,
                 backgroundImageUrl: ''
             };
             applyBrowserSettings(defaultSettings);
@@ -2900,9 +3495,12 @@ function applyBrowserSettings(settings) {
         'bassPulseIntensity': 'bass_pulse_intensity',
         'audioVisualizationEnabled': 'audio_visualization_enabled',
         'maxRunDistance': 'max_run_distance',
-        'sleepTime': 'sleep_time',
-        'sleepEnabled': 'sleep_enabled',
+        'sleepStartTime': 'sleep_start_time',
+        'sleepEndTime': 'sleep_end_time',
+        'sleepTimeout': 'sleep_timeout',
+        'minVolumeToKeepAwake': 'min_volume_to_keep_awake',
         'restTimeout': 'rest_timeout',
+        'zigzagMinDistance': 'zigzag_min_distance',
         'backgroundImageUrl': 'background_image'
     };
 

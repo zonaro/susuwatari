@@ -357,6 +357,18 @@
             <input type="range" id="restTimeout" min="2" max="15" value="5">
         </div>
 
+        <div class="setting-group">
+            <div class="setting-label">Zigzag Effect Min Distance</div>
+            <div class="setting-description">Minimum distance from Susuwatari required to trigger zigzag scatter effect
+            </div>
+            <div class="value-display">
+                <span>50px</span>
+                <span class="current-value" id="zigzagValue">150px</span>
+                <span>400px</span>
+            </div>
+            <input type="range" id="zigzagMinDistance" min="50" max="400" step="10" value="150">
+        </div>
+
         <!-- Background Image -->
         <div class="setting-group">
             <div class="setting-label">Background Image URL</div>
@@ -400,6 +412,7 @@
             sleepTime: 10,
             sleepEnabled: true,
             restTimeout: 5,
+            zigzagMinDistance: 150,
             backgroundImageUrl: ''
         };
 
@@ -425,6 +438,7 @@
             document.getElementById('sleepValue').textContent = document.getElementById('sleepTime').value + 's';
             document.getElementById('runValue').textContent = document.getElementById('maxRunDistance').value + 'px';
             document.getElementById('restValue').textContent = document.getElementById('restTimeout').value + 's';
+            document.getElementById('zigzagValue').textContent = document.getElementById('zigzagMinDistance').value + 'px';
         }
 
         // Initialize the settings panel
