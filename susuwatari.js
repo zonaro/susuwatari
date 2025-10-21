@@ -2006,6 +2006,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
+function hideBrowserOverlay() {
+    const overlay = document.getElementById('browser-download-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
 
 
 // Browser Audio Functions using Web Audio API
