@@ -1937,20 +1937,21 @@ document.addEventListener('DOMContentLoaded', function () {
     susuwatariInstance = new SusuwatariCanvas();
 
     // Detect which wallpaper engine is running
+    const isBrowserMode = this.location.href == 'https://zonaro.github.io/susuwatari/';
     const isWallpaperEngine = typeof window.wallpaperRegisterAudioListener !== 'undefined';
-    const isLivelyWallpaper = typeof window.livelyCurrentTrack !== 'undefined' ||
-        typeof window.livelyAudioListener !== 'undefined' ||
-        document.querySelector('script[src*="lively"]') !== null;
-
-    const isBrowserMode = !isWallpaperEngine && !isLivelyWallpaper;
+    const isLivelyWallpaper = !isBrowserMode && !isWallpaperEngine;
 
     console.log('Wallpaper Engine Detection:');
     console.log('- Wallpaper Engine:', isWallpaperEngine);
     console.log('- Lively Wallpaper:', isLivelyWallpaper);
     console.log('- Browser Mode:', isBrowserMode);
 
+    const overlay = document.getElementById('browser-download-overlay');
+
     // Initialize audio for the detected engine
     if (isWallpaperEngine) {
+        overlay.remove();
+
         console.log('Initializing for Wallpaper Engine...');
         // Register the audio listener with Wallpaper Engine
         try {
@@ -1958,7 +1959,22 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (e) {
             console.warn('Failed to register Wallpaper Engine audio listener:', e);
         }
-    } else if (isLivelyWallpaper) {
+    } else if (isBrowserMode) {
+        console.log('Running in standard web browser mode');
+        // Initialize browser mode with settings panel
+        initializeBrowserMode();
+        // Initialize Web Audio API for browser mode
+        initializeBrowserAudio();
+
+        if (overlay) {
+            if (isBrowserMode) {
+                overlay.style.display = 'flex';
+            }
+        }
+
+    } else {
+        overlay.remove();
+
         window.livelyAudioListener = function (audioArray) {
             if (susuwatariInstance) {
                 susuwatariInstance.wallpaperAudioListener(audioArray);
@@ -1984,24 +2000,6 @@ document.addEventListener('DOMContentLoaded', function () {
         Object.keys(defaultProperties).forEach(key => {
             livelyPropertyListener(key, defaultProperties[key]);
         });
-
-    } else {
-        console.log('Running in standard web browser mode');
-        // Initialize browser mode with settings panel
-        initializeBrowserMode();
-        // Initialize Web Audio API for browser mode
-        initializeBrowserAudio();
-
-        const overlay = document.getElementById('browser-download-overlay');
-        if (overlay) {
-            if (isBrowserMode) {
-                overlay.style.display = 'flex';
-            } else {
-                // Remove the overlay completely from DOM if in wallpaper mode
-                overlay.remove();
-            }
-        }
-
 
     }
 });
