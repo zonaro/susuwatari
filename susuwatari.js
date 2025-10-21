@@ -48,6 +48,9 @@ class SusuwatariCanvas {
         this.bassPulseIntensity = 1.0; // Multiplier for bass pulse effect on size
         this.audioVisualizationEnabled = true; // Toggle for audio visualization
 
+        // Background image system
+        this.backgroundImageUrl = ''; // Stores the base64 data URL for the background image
+
         // Mouse movement tracking for dizziness detection
         this.mouseHistory = []; // Track recent mouse positions
         this.maxMouseHistoryLength = 20; // Keep last 20 positions (increased from 10)
@@ -55,7 +58,69 @@ class SusuwatariCanvas {
         this.init();
     }
 
-    // Audio listener function for Wallpaper Engine
+    // Convert file to base64 data URL
+    async fileToBase64DataURL(filePath) {
+        return new Promise((resolve, reject) => {
+            // Create an image element to load the file
+            const img = new Image();
+
+            img.onload = () => {
+                try {
+                    // Create a canvas to convert the image to base64
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    // Set canvas dimensions to match image
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+
+                    // Draw the image on the canvas
+                    ctx.drawImage(img, 0, 0);
+
+                    // Convert canvas to base64 data URL
+                    const dataURL = canvas.toDataURL('image/png', 0.9);
+                    console.log('Successfully converted image to base64 data URL, size:', dataURL.length);
+                    resolve(dataURL);
+                } catch (error) {
+                    console.error('Error converting image to base64:', error);
+                    reject(error);
+                }
+            };
+
+            img.onerror = (error) => {
+                console.error('Error loading image for base64 conversion:', error);
+                reject(new Error(`Failed to load image: ${filePath}`));
+            };
+
+            // Set CORS if needed and load the image
+            img.crossOrigin = 'anonymous';
+            img.src = filePath;
+        });
+    }
+
+    // Update background image URL property with base64 data
+    updateBackgroundImageUrlProperty(dataURL) {
+        // Store in internal property for immediate use
+        this.backgroundImageUrl = dataURL;
+
+        // Update the property depending on the wallpaper engine
+        if (isWallpaperEngine) {
+            // For Wallpaper Engine, trigger property update
+            const properties = {
+                background_image: { value: dataURL }
+            };
+
+            // Apply the properties to update the UI
+            this.applyUserProperties(properties);
+
+            console.log('Updated Wallpaper Engine backgroundImageUrl property with base64 data');
+        } else if (isLivelyWallpaper) {
+            // For Lively Wallpaper, call the listener directly
+            livelyPropertyListener('backgroundImageUrl', dataURL);
+            console.log('Updated Lively Wallpaper backgroundImageUrl property with base64 data');
+        }
+    }
+
     wallpaperAudioListener(audioArray) {
         // Update raw audio data
         for (let i = 0; i < audioArray.length; i++) {
@@ -225,15 +290,28 @@ class SusuwatariCanvas {
         }
 
         // Background image property: Local files via FilePicker/FolderDropdown, URLs only via text input
-        if (properties.background_image || properties.background_image_picker || properties.backgroundImagePicker) {
+        if (properties.background_image || properties.background_image_picker || properties.backgroundImagePicker || properties.background_image_url) {
             console.log('Processing background properties:', {
                 background_image: properties.background_image,
                 background_image_picker: properties.background_image_picker,
-                backgroundImagePicker: properties.backgroundImagePicker
+                backgroundImagePicker: properties.backgroundImagePicker,
+                background_image_url: properties.background_image_url
             });
 
             let imageValue = '';
             let isFileSource = false; // Track if image comes from file picker vs URL input       
+
+            // Priority 0: Check if we already have a base64 data URL (backgroundImageUrl)
+            if (properties.background_image_url && properties.background_image_url.value && properties.background_image_url.value.trim() !== '') {
+                const dataURLValue = properties.background_image_url.value.trim();
+                if (dataURLValue.startsWith('data:')) {
+                    console.log('Using existing base64 data URL from backgroundImageUrl property');
+                    document.body.style.backgroundImage = `url('${dataURLValue}')`;
+                    document.body.style.background = `url('${dataURLValue}') center/cover no-repeat`;
+                    console.log('Background image successfully set from base64 data URL');
+                    return; // Exit early, we have our background
+                }
+            }
 
             // Priority 1: Check if user used the Lively folder dropdown (backgroundImagePicker)
             if (properties.backgroundImagePicker && properties.backgroundImagePicker.value && properties.backgroundImagePicker.value.trim() !== '') {
@@ -266,34 +344,54 @@ class SusuwatariCanvas {
             }
 
             if (imageValue && imageValue.trim() !== '') {
-                let imageUrl;
-
                 if (isFileSource) {
-                    // Handle file paths from file pickers and folder dropdowns
-                    if (imageValue.startsWith('file://')) {
-                        // Already a file URL
-                        imageUrl = imageValue;
-                        console.log('Using existing file URL:', imageUrl);
-                    } else if (isLivelyWallpaper) {
-                        // Lively Wallpaper folder dropdown uses relative paths - no file:// prefix needed
-                        // remove trailing slashes from begin and end
-                        imageUrl = imageValue.replace(/^\/+|\/+$/g, '');
-                        console.log('Using Lively folder dropdown relative path:', imageUrl);
-                    } else {
-                        // Convert Wallpaper Engine absolute file path to file URL
-                        imageUrl = 'file:///' + imageValue.replace(/\\/g, '/');
-                        console.log('Converted Wallpaper Engine file path to URL:', imageValue, '->', imageUrl);
-                    }
+                    // Convert local file to base64 data URL and save to backgroundImageUrl property
+                    console.log('Converting local file to base64 data URL:', imageValue);
+
+                    this.fileToBase64DataURL(imageValue)
+                        .then(dataURL => {
+                            console.log('File successfully converted to base64, updating backgroundImageUrl property');
+
+                            // Update the backgroundImageUrl property with the base64 data
+                            this.updateBackgroundImageUrlProperty(dataURL);
+
+                            // Apply the background immediately
+                            document.body.style.backgroundImage = `url('${dataURL}')`;
+                            document.body.style.background = `url('${dataURL}') center/cover no-repeat`;
+                            console.log('Background image successfully set from converted base64 data');
+                        })
+                        .catch(error => {
+                            console.error('Failed to convert file to base64:', error);
+                            // Fallback to original file path
+                            document.body.style.backgroundImage = `url('${imageValue}')`;
+                            document.body.style.background = `url('${imageValue}') center/cover no-repeat`;
+                            console.log('Using fallback file path for background:', imageValue);
+                        });
                 } else {
                     // Handle URLs from text input (already validated to be http:// or https://)
-                    imageUrl = imageValue;
-                    console.log('Using web URL:', imageUrl);
-                }
+                    // For URLs, we also convert to base64 for consistency
+                    console.log('Converting web URL to base64 data URL:', imageValue);
 
-                console.log('Applying background image:', imageUrl);
-                document.body.style.backgroundImage = `url('${imageUrl}')`;
-                document.body.style.background = `url('${imageUrl}') center/cover no-repeat`;
-                console.log('Background image successfully set:', imageUrl);
+                    this.fileToBase64DataURL(imageValue)
+                        .then(dataURL => {
+                            console.log('Web URL successfully converted to base64, updating backgroundImageUrl property');
+
+                            // Update the backgroundImageUrl property with the base64 data
+                            this.updateBackgroundImageUrlProperty(dataURL);
+
+                            // Apply the background immediately
+                            document.body.style.backgroundImage = `url('${dataURL}')`;
+                            document.body.style.background = `url('${dataURL}') center/cover no-repeat`;
+                            console.log('Background image successfully set from converted base64 data');
+                        })
+                        .catch(error => {
+                            console.error('Failed to convert URL to base64:', error);
+                            // Fallback to original URL
+                            document.body.style.backgroundImage = `url('${imageValue}')`;
+                            document.body.style.background = `url('${imageValue}') center/cover no-repeat`;
+                            console.log('Using fallback URL for background:', imageValue);
+                        });
+                }
             } else {
                 // No image selected, use default gradient
                 document.body.style.backgroundImage = '';
@@ -1969,7 +2067,7 @@ function livelyPropertyListener(name, val) {
         'sleepTime': 'sleep_time',
         'sleepEnabled': 'sleep_enabled',
         'restTimeout': 'rest_timeout',
-        'backgroundImageUrl': 'background_image',
+        'backgroundImageUrl': 'background_image_url',
         'backgroundImagePicker': 'background_image_picker'
     };
 
@@ -2468,7 +2566,7 @@ function applyBrowserSettings(settings) {
         'sleepTime': 'sleep_time',
         'sleepEnabled': 'sleep_enabled',
         'restTimeout': 'rest_timeout',
-        'backgroundImageUrl': 'background_image'
+        'backgroundImageUrl': 'background_image_url'
     };
 
     Object.keys(settings).forEach(key => {
