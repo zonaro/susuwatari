@@ -96,6 +96,15 @@
         "value": 150,
         "help": "Minimum distance from Susuwatari required to trigger zigzag scatter effect"
     },
+    "eyeDilationIntensity": {
+        "max": 10,
+        "min": 1,
+        "step": 1,
+        "text": "Eye Dilation Intensity",
+        "type": "slider",
+        "value": 1,
+        "help": "Controls how much the Susuwatari eyes dilate when the mouse approaches"
+    },
     "backgroundImageUrl": {
         "text": "Background Image URL",
         "type": "textbox",

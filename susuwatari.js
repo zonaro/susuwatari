@@ -51,6 +51,9 @@ class SusuwatariCanvas {
         this.bassPulseIntensity = 1.0; // Multiplier for bass pulse effect on size
         this.audioVisualizationEnabled = true; // Toggle for audio visualization
 
+        // Eye dilation system
+        this.eyeDilationIntensity = 1.0; // Multiplier for eye dilation effect
+
         // Background image system
         this.backgroundImageUrl = ''; // Stores the base64 data URL for the background image
 
@@ -287,8 +290,8 @@ class SusuwatariCanvas {
     applyUserProperties(properties) {
         console.log('SusuwatariCanvas.applyUserProperties called with:', Object.keys(properties));
 
-        if (properties.susuwatari_size) {
-            this.particleSize = properties.susuwatari_size.value;
+        if (properties.susuwatariSize) {
+            this.particleSize = properties.susuwatariSize.value;
             // Update size of all existing Susuwatari
             this.particles.forEach(particle => {
                 particle.baseSize = this.particleSize;
@@ -296,8 +299,8 @@ class SusuwatariCanvas {
             });
         }
 
-        if (properties.susuwatari_count) {
-            this.maxParticles = properties.susuwatari_count.value;
+        if (properties.susuwatariCount) {
+            this.maxParticles = properties.susuwatariCount.value;
             // Adjust current quantity if needed
             if (this.particles.length > this.maxParticles) {
                 this.particles.splice(this.maxParticles);
@@ -310,69 +313,71 @@ class SusuwatariCanvas {
             this.updateUI();
         }
 
-        if (properties.flee_distance) {
-            this.fleeDistance = properties.flee_distance.value;
+        if (properties.fleeDistance) {
+            this.fleeDistance = properties.fleeDistance.value;
         }
 
-        if (properties.flee_acceleration) {
-            this.fleeAcceleration = properties.flee_acceleration.value;
+        if (properties.fleeAcceleration) {
+            this.fleeAcceleration = properties.fleeAcceleration.value;
         }
 
-        if (properties.audio_intensity) {
-            this.audioIntensity = properties.audio_intensity.value;
+        if (properties.audioIntensity) {
+            this.audioIntensity = properties.audioIntensity.value;
         }
 
-        if (properties.bass_pulse_intensity) {
-            this.bassPulseIntensity = properties.bass_pulse_intensity.value;
+        if (properties.bassPulseIntensity) {
+            this.bassPulseIntensity = properties.bassPulseIntensity.value;
         }
 
-        if (properties.audio_visualization_enabled) {
-            this.audioVisualizationEnabled = properties.audio_visualization_enabled.value;
+        if (properties.audioVisualizationEnabled) {
+            this.audioVisualizationEnabled = properties.audioVisualizationEnabled.value;
         }
 
-        if (properties.max_run_distance) {
-            this.maxRunDistance = properties.max_run_distance.value;
+        if (properties.maxRunDistance) {
+            this.maxRunDistance = properties.maxRunDistance.value;
         }
 
-        if (properties.sleep_start_time) {
-            this.sleepStartTime = properties.sleep_start_time.value;
+        if (properties.sleepStartTime) {
+            this.sleepStartTime = properties.sleepStartTime.value;
         }
 
-        if (properties.sleep_end_time) {
-            this.sleepEndTime = properties.sleep_end_time.value;
+        if (properties.sleepEndTime) {
+            this.sleepEndTime = properties.sleepEndTime.value;
         }
 
-        if (properties.sleep_timeout) {
-            this.sleepTimeout = properties.sleep_timeout.value;
+        if (properties.sleepTimeout) {
+            this.sleepTimeout = properties.sleepTimeout.value;
         }
 
-        if (properties.min_volume_to_keep_awake) {
-            this.minVolumeToKeepAwake = properties.min_volume_to_keep_awake.value;
+        if (properties.minVolumeToKeepAwake) {
+            this.minVolumeToKeepAwake = properties.minVolumeToKeepAwake.value;
         }
 
-        if (properties.rest_timeout) {
-            this.restTimeout = properties.rest_timeout.value;
+        if (properties.restTimeout) {
+            this.restTimeout = properties.restTimeout.value;
         }
 
-        if (properties.zigzag_min_distance) {
-            this.zigzagMinDistance = properties.zigzag_min_distance.value;
+        if (properties.zigzagMinDistance) {
+            this.zigzagMinDistance = properties.zigzagMinDistance.value;
+        }
+
+        if (properties.eyeDilationIntensity) {
+            this.eyeDilationIntensity = properties.eyeDilationIntensity.value;
         }
 
         // Background image property: Local files via FilePicker/FolderDropdown, URLs only via text input
-        if (properties.background_image || properties.background_image_picker || properties.backgroundImagePicker || properties.background_image) {
+        if (properties.backgroundImageUrl || properties.backgroundImagePicker) {
             console.log('Processing background properties:', {
-                background_image: properties.background_image,
-                background_image_picker: properties.background_image_picker,
-                backgroundImagePicker: properties.backgroundImagePicker,
-                background_image: properties.background_image
+                backgroundImageUrl: properties.backgroundImageUrl,
+                backgroundImagePicker: properties.backgroundImagePicker
             });
 
             let imageValue = '';
             let isFileSource = false; // Track if image comes from file picker vs URL input       
 
             // Priority 0: Check if we already have a base64 data URL (backgroundImageUrl)
-            if (properties.background_image && properties.background_image.value && properties.background_image.value.trim() !== '') {
-                const dataURLValue = properties.background_image.value.trim();
+            if (properties.backgroundImageUrl && properties.backgroundImageUrl.value && properties.backgroundImageUrl.value.trim() !== '') {
+                const dataURLValue = properties.backgroundImageUrl.value.trim();
                 if (dataURLValue.startsWith('data:')) {
                     console.log('Using existing base64 data URL from backgroundImageUrl property');
                     document.body.style.backgroundImage = `url('${dataURLValue}')`;
@@ -393,15 +398,15 @@ class SusuwatariCanvas {
                 }
                 console.log('Using Lively folder dropdown image:', imageValue);
             }
-            // Priority 2: Check if user used the Wallpaper Engine file picker
-            else if (properties.background_image_picker && properties.background_image_picker.value && properties.background_image_picker.value.trim() !== '') {
-                imageValue = properties.background_image_picker.value;
+            // Priority 2: Check if user used the Wallpaper Engine file picker (backgroundImagePicker)
+            else if (properties.backgroundImagePicker && properties.backgroundImagePicker.value && properties.backgroundImagePicker.value.trim() !== '') {
+                imageValue = properties.backgroundImagePicker.value;
                 isFileSource = true;
                 console.log('Using Wallpaper Engine file picker image:', imageValue);
             }
             // Priority 3: Otherwise use the text input value (URL only)
-            else if (properties.background_image && properties.background_image.value && properties.background_image.value.trim() !== '') {
-                const inputValue = properties.background_image.value.trim();
+            else if (properties.backgroundImageUrl && properties.backgroundImageUrl.value && properties.backgroundImageUrl.value.trim() !== '') {
+                const inputValue = properties.backgroundImageUrl.value.trim();
                 // Only accept URLs (http:// or https://) in the text input
                 if (inputValue.startsWith('http://') || inputValue.startsWith('https://')) {
                     imageValue = inputValue;
@@ -2682,7 +2687,7 @@ class SusuwatariCanvas {
             // Eye dilation based on mouse proximity (closer = more dilated)
             const maxProximityDistance = this.fleeDistance * 1.5; // 1.5x flee distance for gradual effect
             const proximityRatio = Math.max(0, 1 - (mouseDistance / maxProximityDistance)); // 1 = very close, 0 = far
-            const proximityEyeMultiplier = 1 + (proximityRatio * 0.6); // Up to 60% larger when mouse is very close
+            const proximityEyeMultiplier = 1 + (proximityRatio * 0.6 * this.eyeDilationIntensity); // Up to 60% larger when mouse is very close, multiplied by intensity
 
             // Olhos maiores baseado na proximidade do mouse (efeito de susto)
             // Apply tiredness effect to eyes (tired = smaller, droopy eyes)
@@ -2977,33 +2982,10 @@ function processPendingProperties() {
 function livelyPropertyListener(name, val) {
     if (!susuwatariInstance) return;
 
-    // Convert Lively property names to Wallpaper Engine format
-    const livelyToWallpaperMap = {
-        'susuwatariSize': 'susuwatari_size',
-        'susuwatariCount': 'susuwatari_count',
-        'fleeDistance': 'flee_distance',
-        'fleeAcceleration': 'flee_acceleration',
-        'audioIntensity': 'audio_intensity',
-        'bassPulseIntensity': 'bass_pulse_intensity',
-        'audioVisualizationEnabled': 'audio_visualization_enabled',
-        'maxRunDistance': 'max_run_distance',
-        'sleepStartTime': 'sleep_start_time',
-        'sleepEndTime': 'sleep_end_time',
-        'sleepTimeout': 'sleep_timeout',
-        'minVolumeToKeepAwake': 'min_volume_to_keep_awake',
-        'restTimeout': 'rest_timeout',
-        'zigzagMinDistance': 'zigzag_min_distance',
-        'backgroundImageUrl': 'background_image',
-        'backgroundImagePicker': 'background_image_picker'
-    };
-
-    const wallpaperPropertyName = livelyToWallpaperMap[name];
-    if (wallpaperPropertyName) {
-        // Create property object in Wallpaper Engine format
-        const properties = {};
-        properties[wallpaperPropertyName] = { value: val };
-        susuwatariInstance.applyUserProperties(properties);
-    }
+    // Both Lively and Wallpaper Engine now use camelCase - no conversion needed
+    const properties = {};
+    properties[name] = { value: val };
+    susuwatariInstance.applyUserProperties(properties);
 }
 
 let isBrowserMode = false;
@@ -3482,33 +3464,11 @@ function loadBrowserSettings() {
 function applyBrowserSettings(settings) {
     if (!susuwatariInstance) return;
 
-    // Convert browser settings to Wallpaper Engine format and apply
+    // Convert browser settings to properties object (now using camelCase directly)
     const properties = {};
 
-    // Map all settings
-    const browserToWallpaperMap = {
-        'susuwatariSize': 'susuwatari_size',
-        'susuwatariCount': 'susuwatari_count',
-        'fleeDistance': 'flee_distance',
-        'fleeAcceleration': 'flee_acceleration',
-        'audioIntensity': 'audio_intensity',
-        'bassPulseIntensity': 'bass_pulse_intensity',
-        'audioVisualizationEnabled': 'audio_visualization_enabled',
-        'maxRunDistance': 'max_run_distance',
-        'sleepStartTime': 'sleep_start_time',
-        'sleepEndTime': 'sleep_end_time',
-        'sleepTimeout': 'sleep_timeout',
-        'minVolumeToKeepAwake': 'min_volume_to_keep_awake',
-        'restTimeout': 'rest_timeout',
-        'zigzagMinDistance': 'zigzag_min_distance',
-        'backgroundImageUrl': 'background_image'
-    };
-
     Object.keys(settings).forEach(key => {
-        const wallpaperKey = browserToWallpaperMap[key];
-        if (wallpaperKey) {
-            properties[wallpaperKey] = { value: settings[key] };
-        }
+        properties[key] = { value: settings[key] };
     });
 
     console.log('Applying browser settings as properties:', properties);

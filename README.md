@@ -184,6 +184,12 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 - **Supported Formats**: JPG, PNG, JPEG, GIF, BMP, WebP
 - **Description**: Select a background image from the backgrounds folder or use the file picker to add new images. This control automatically scans the backgrounds folder and provides easy access to your custom images. Has higher priority than the URL/Path input when both are set.
 
+#### Eye Dilation Intensity
+- **Type**: Slider
+- **Range**: 1 - 10x
+- **Default**: 1x
+- **Description**: Controls how much the Susuwatari eyes dilate when the mouse approaches. Higher values create more dramatic "scared" eye expressions.
+
 ## Installation Instructions
 
 ### Wallpaper Engine (Steam)

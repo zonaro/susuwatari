@@ -264,6 +264,18 @@
             <input type="range" id="fleeAcceleration" min="1.0" max="8.0" step="0.1" value="4.0">
         </div>
 
+        <div class="setting-group">
+            <div class="setting-label">Eye Dilation Intensity</div>
+            <div class="setting-description">Controls how much the Susuwatari eyes dilate when the mouse approaches
+            </div>
+            <div class="value-display">
+                <span>1x</span>
+                <span class="current-value" id="eyeValue">1x</span>
+                <span>10x</span>
+            </div>
+            <input type="range" id="eyeDilationIntensity" min="1" max="10" step="1" value="1">
+        </div>
+
         <!-- Audio Settings -->
         <div class="setting-group">
             <div class="setting-label">Audio Visualization</div>
@@ -405,6 +417,7 @@
             susuwatariCount: 100,
             fleeDistance: 80,
             fleeAcceleration: 4.0,
+            eyeDilationIntensity: 1,
             audioIntensity: 1.0,
             bassPulseIntensity: 1.0,
             audioVisualizationEnabled: true,
@@ -433,6 +446,7 @@
             document.getElementById('countValue').textContent = document.getElementById('susuwatariCount').value;
             document.getElementById('distanceValue').textContent = document.getElementById('fleeDistance').value + 'px';
             document.getElementById('accelValue').textContent = document.getElementById('fleeAcceleration').value + 'x';
+            document.getElementById('eyeValue').textContent = document.getElementById('eyeDilationIntensity').value + 'x';
             document.getElementById('audioValue').textContent = document.getElementById('audioIntensity').value + 'x';
             document.getElementById('bassValue').textContent = document.getElementById('bassPulseIntensity').value + 'x';
             document.getElementById('sleepValue').textContent = document.getElementById('sleepTime').value + 's';
