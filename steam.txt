@@ -1,0 +1,104 @@
+[h1]Susuwatari - Interactive Audio-Reactive Wallpaper[/h1]
+
+[i]An interactive implementation of the famous Susuwatari (soot sprites) from Studio Ghibli films, especially "Spirited Away" and "My Neighbor Totoro". Features advanced audio-reactive animations and customizable properties![/i]
+
+[h2]🎵 Audio-Reactive Features[/h2]
+[list]
+[*][b]Music-Responsive Spikes[/b]: Spikes pulse and move to the beat of your music
+[*][b]Bass Eye Pulsing[/b]: Eyes grow and shrink responding to bass frequencies
+[*][b]Smart Sleep System[/b]: Configurable sleep hours with volume-aware wake-up
+[*][b]Gaming-Friendly[/b]: Loud game audio keeps sprites awake and reactive
+[*][b]Full Frequency Spectrum[/b]: Uses both left and right audio channels
+[/list]
+
+[h3]Advanced Sleep System 🌙🎵[/h3]
+[list]
+[*][b]Time-Based Sleep[/b]: Configure specific hours when Susuwatari can sleep (e.g., 22:00 to 06:00)
+[*][b]Volume-Aware Sleep[/b]: Susuwatari won't sleep if music/audio is above the minimum volume threshold
+[*][b]Smart Wake-Up[/b]: Automatically wake up when volume increases or when outside sleep hours
+[*][b]Gaming-Friendly[/b]: Perfect for night gaming sessions - loud game audio keeps sprites awake and reactive
+[*][b]Ambient-Compatible[/b]: Allows sleep during quiet ambient music or low system sounds
+[*][b]Real-Time Monitoring[/b]: Continuously monitors audio levels for instant wake-up when music starts
+[/list]
+
+[h3]Special Mouse Effects[/h3]
+[list]
+[*][b]Dizziness Effect[/b]: Rapidly move mouse in circles around a Susuwatari to make it dizzy with spinning eyes
+[*][b]Zigzag Scatter Effect[/b]: Make quick zigzag movements away from all Susuwatari to trigger a dramatic scatter effect that randomly repositions all sprites across the screen
+[/list]
+
+[h3]Visual Effects[/h3]
+[list]
+[*][b]Spiky Shape[/b]: Each Susuwatari has a unique shape with 75-120 spikes that react to music
+[*][b]Unique Rotation[/b]: Each sprite has its own fixed rotation angle, creating diverse visual patterns
+[*][b]Audio-Reactive Spikes[/b]: Spikes that pulse and move to the beat of your music
+[*][b]Expressive Eyes[/b]: Pupils that follow the mouse and dilate based on mouse proximity (closer mouse = more scared expression)
+[*][b]Blinking System[/b]: Randomly blink between 3-10 seconds
+[*][b]Soot Trails[/b]: Leave dark trails when moving
+[*][b]Smoke Explosion[/b]: When disappearing, explode into smoke particles
+[*][b]Permanent Stains[/b]: Leave soot stains for 10 seconds where they disappeared
+[/list]
+
+[h3]Physics & Collision System[/h3]
+[list]
+[*][b]Automatic Collection[/b]: Susuwatari automatically collect coal and colored stars when they touch them
+[*][b]Explosive Coal[/b]: When coal is larger than the Susuwatari, it explodes the sprite into dust
+[*][b]Physical Obstacles[/b]: Shoes act as solid obstacles that Susuwatari bounce off
+[*][b]Directional Collision Physics[/b]: Smart collision system where moving Susuwatari push stationary ones, and larger sprites push smaller ones when both are moving
+[*][b]Momentum Transfer[/b]: Pushed Susuwatari receive momentum and continue moving in the direction they were pushed
+[*][b]Enhanced Visual Effects[/b]: Collision points produce particle effects that vary based on collision type and intensity
+[*][b]Smart Collision Response[/b]: Different behaviors for different collectible types
+[*][b]Safe Spawning[/b]: New sprites and collectibles are created in safe positions without overlapping
+[*][b]Boundary Awareness[/b]: All objects respect canvas boundaries and stay within screen limits
+[/list]
+
+[h2]🎮 Collectible Items[/h2]
+
+[h3]Coal Stones 🪨[/h3]
+[list]
+[*][b]Behavior[/b]: Automatically collected when Susuwatari touch them
+[*][b]Size Variation[/b]: 50% to 150% of average Susuwatari size
+[*][b]Special Effect[/b]: Large coal (bigger than Susuwatari) causes explosion and destroys the sprite
+[*][b]Visual[/b]: Black irregular shape with realistic coal texture
+[*][b]Interaction[/b]: Click to split into two smaller pieces
+[/list]
+
+[h3]Colored Stars ⭐[/h3]
+[list]
+[*][b]Behavior[/b]: Automatically collected when Susuwatari touch them
+[*][b]Size[/b]: Always smaller than Susuwatari (30% to 90% of their size)
+[*][b]Colors[/b]: 8 different vibrant colors (gold, pink, turquoise, tomato, lime, purple, orange, sky blue)
+[*][b]Visual[/b]: 6-pointed star with sparkle effects and gentle pulsing
+[*][b]Interaction[/b]: Click to change color randomly
+[/list]
+
+[h3]Shoes 👞[/h3]
+[list]
+[*][b]Behavior[/b]: Physical obstacles that Susuwatari bounce off
+[*][b]Size[/b]: Always 180% of average Susuwatari size
+[*][b]Special[/b]: Only one shoe can exist at a time, all Susuwatari gather around it
+[*][b]Visual[/b]: Realistic sandal design with detailed straps and sole
+[*][b]Interaction[/b]: Click to remove (only way to eliminate shoes)
+[/list]
+
+[h2]🎯 Interaction Controls[/h2]
+
+[list]
+[*][b]Left Click[/b]: Add (empty area) / Remove (on Susuwatari)
+[*][b]Access settings[/b] through wallpaper software
+[/list]
+
+
+[h2]🎨 Background Customization[/h2]
+
+[list]
+[*][b]Custom Background Images[/b]: Upload your own wallpaper images to personalize the experience
+[*][b]Default Gradient[/b]: Beautiful blue gradient when no image is set
+[*][b]Supported Formats[/b]: JPG, PNG, JPEG, GIF, BMP, WebP
+[/list]
+
+[h2]💡 Inspiration[/h2]
+
+This project was inspired by the adorable Susuwatari from Studio Ghibli films, magical creatures that live in abandoned houses and flee when disturbed, but return when everything is quiet again.
+
+[b]License: Open source project for educational and entertainment purposes.[/b]

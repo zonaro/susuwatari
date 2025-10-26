@@ -1473,9 +1473,34 @@ class SusuwatariCanvas {
 
         // If was tired but rest time is over, restore energy
         if (particle.isTired && currentTime >= particle.tiredUntil) {
+            // Recovery from tiredness - same as dizziness recovery
             particle.isTired = false;
             particle.energy = 1.0;
             particle.fleeStartTime = currentTime; // Reset flee timer
+
+            // After tiredness recovery, run away in a random direction away from mouse (same as dizziness)
+            // Distance: 300% of fleeDistance (3x the distance where they start fleeing)
+            const runAwayDistance = this.fleeDistance * 3;
+
+            // Calculate base angle away from mouse
+            const baseAngle = Math.atan2(particle.y - this.mouseY, particle.x - this.mouseX);
+
+            // Add random variation (±45 degrees) to make it less predictable
+            const randomVariation = (Math.random() - 0.5) * Math.PI * 0.5; // ±π/4 radians
+            const finalAngle = baseAngle + randomVariation;
+
+            // Calculate target position
+            const targetX = particle.x + Math.cos(finalAngle) * runAwayDistance;
+            const targetY = particle.y + Math.sin(finalAngle) * runAwayDistance;
+
+            // Keep within canvas bounds
+            particle.targetX = Math.max(particle.size / 2, Math.min(this.canvas.width - particle.size / 2, targetX));
+            particle.targetY = Math.max(particle.size / 2, Math.min(this.canvas.height - particle.size / 2, targetY));
+
+            // Reset fleeing state to allow immediate movement
+            particle.isFleeing = false;
+            particle.isSeekingCollectible = false;
+            particle.targetCollectible = null;
         }
 
         // Start fleeing if not already fleeing

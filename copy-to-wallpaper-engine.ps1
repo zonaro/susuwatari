@@ -25,7 +25,7 @@ else {
 
 # Executa a copia usando robocopy
 Write-Host "Copiando arquivos..." -ForegroundColor Yellow
-robocopy $origem $destino /E /XD .vscode .vs .github .git .ps
+robocopy $origem $destino /E /XD .vscode .vs .github .git .ps1
 
 # Verifica o resultado (robocopy retorna 0 ou 1 para sucesso)
 if ($LASTEXITCODE -le 1) {
