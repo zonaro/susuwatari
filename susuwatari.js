@@ -2691,7 +2691,7 @@ class SusuwatariCanvas {
 
             // Olhos maiores baseado na proximidade do mouse (efeito de susto)
             // Apply tiredness effect to eyes (tired = smaller, droopy eyes)
-            let tirednessMultiplier = particle.isTired ? 0.7 : (1.0 - (1.0 - particle.energy) * 0.3); // Eyes get smaller as energy decreases
+            let tirednessMultiplier = particle.isTired ? 0.4 : (1.0 - (1.0 - particle.energy) * 0.3); // Eyes get smaller as energy decreases
 
             // Dizzy Susuwatari have bigger eyes (dazed/confused look)
             if (particle.isDizzy) {
