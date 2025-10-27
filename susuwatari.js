@@ -1516,7 +1516,7 @@ class SusuwatariCanvas {
         const runningTime = currentTime - particle.fleeStartTime;
         if ((runningTime > particle.maxRunTime || particle.totalDistanceTraveled > this.maxRunDistance) && !particle.isTired) {
             particle.isTired = true;
-            particle.tiredUntil = currentTime + particle.restTime;
+            particle.tiredUntil = currentTime + (this.restTimeout * 1000);
             particle.isFleeing = false;
             particle.energy = 0.0;
             particle.totalDistanceTraveled = 0; // Reset distance when tired
