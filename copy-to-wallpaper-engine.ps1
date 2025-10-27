@@ -25,7 +25,27 @@ else {
 
 # Executa a copia usando robocopy
 Write-Host "Copiando arquivos..." -ForegroundColor Yellow
-robocopy $origem $destino /E /XD .vscode .vs .github .git .ps1
+robocopy $origem $destino /E /XD .vscode .vs .github .git
+
+# Apaga arquivos desnecessarios apos a copia (se eles existirem)
+
+$arquivosParaRemover = @(
+    "copy-to-wallpaper-engine.ps1",
+    "README.md",
+    "LICENSE",
+    "susuwatari.code-workspace",
+    ".gitignore",
+    "steam.txt"
+)
+
+foreach ($arquivo in $arquivosParaRemover) {
+    $caminhoArquivo = Join-Path -Path $destino -ChildPath $arquivo
+    if (Test-Path $caminhoArquivo) {
+        Remove-Item $caminhoArquivo -Force
+        Write-Host "Arquivo removido: $caminhoArquivo" -ForegroundColor Yellow
+    }
+}
+
 
 # Verifica o resultado (robocopy retorna 0 ou 1 para sucesso)
 if ($LASTEXITCODE -le 1) {

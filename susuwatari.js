@@ -2748,8 +2748,13 @@ class SusuwatariCanvas {
             }
 
             const baseEyeSize = size * 0.17;
-            const proximityEyeSize = baseEyeSize * proximityEyeMultiplier * tirednessMultiplier;
-            const eyeSize = proximityEyeSize * bassPulseMultiplier; // Apply bass pulse to eyes
+
+            // Dizzy Susuwatari don't react to mouse proximity or audio
+            const finalProximityMultiplier = particle.isDizzy ? 1.0 : proximityEyeMultiplier;
+            const finalBassMultiplier = particle.isDizzy ? 1.0 : bassPulseMultiplier;
+
+            const proximityEyeSize = baseEyeSize * finalProximityMultiplier * tirednessMultiplier;
+            const eyeSize = proximityEyeSize * finalBassMultiplier; // Apply bass pulse to eyes
             const eyePosition = size * 0.17;
 
             this.ctx.globalAlpha = particle.eyeOpacity;
@@ -2792,7 +2797,8 @@ class SusuwatariCanvas {
             // Pupilas dilatadas baseado na proximidade do mouse (efeito de susto/medo)
             const basePupilSize = eyeSize * 0.4;
             const proximityPupilMultiplier = 1 + (proximityRatio * 0.8); // Up to 80% larger pupils when mouse is very close
-            const pupilSize = basePupilSize * proximityPupilMultiplier;
+            const finalPupilMultiplier = particle.isDizzy ? 1.0 : proximityPupilMultiplier;
+            const pupilSize = basePupilSize * finalPupilMultiplier;
 
             // Render pupils or dizziness effect
             if (particle.isDizzy) {
@@ -3690,7 +3696,9 @@ function showBrowserModeNotification() {
                 { name: 'LivelyProperties.json', desc: 'Configurable properties' },
                 { name: 'index.html', desc: 'Main interface' },
                 { name: 'preview.gif', desc: 'Preview' },
-                { name: 'susuwatari.js', desc: 'Animation engine' }
+                { name: 'susuwatari.js', desc: 'Animation engine' },
+                { name: 'shoes.png', desc: 'Chihiro Shoes' }
+
             ];
 
             downloadBtn.textContent = '⏳ Preparing download...';
