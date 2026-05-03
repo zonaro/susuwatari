@@ -712,14 +712,11 @@ class SusuwatariCanvas {
             }
         }
 
-        // Generate unique spiky shape for each Susuwatari
-        const spikes = 75 + Math.floor(Math.random() * 45); // 75-120 spikes (3x mais)
+        // Generate unique fuzzy fur pattern for each Susuwatari
+        const spikes = 110 + Math.floor(Math.random() * 60); // Dense fur ring
         const spikePattern = [];
         for (let i = 0; i < spikes; i++) {
-            const isOuter = i % 2 === 0;
-            const radiusMultiplier = isOuter ?
-                (0.85 + Math.random() * 0.3) : // Outer spikes: 85-115%
-                (0.45 + Math.random() * 0.25); // Inner valleys: 45-70%
+            const radiusMultiplier = 0.9 + Math.random() * 0.34; // Hair length variation
             spikePattern.push(radiusMultiplier);
         }
 
@@ -734,6 +731,18 @@ class SusuwatariCanvas {
             spikeCount: spikes, // Unique number of spikes
             spikePattern: spikePattern, // Unique spike pattern
             rotation: Math.random() * Math.PI * 2, // Unique fixed rotation for each Susuwatari (0 to 2π)
+            furDepth: 0.16 + Math.random() * 0.08,
+            furSoftness: 0.78 + Math.random() * 0.18,
+            bodyRoundness: 0.72 + Math.random() * 0.08,
+            eyeSeparation: 0.16 + Math.random() * 0.02,
+            eyeOffsetY: -0.015 - Math.random() * 0.025,
+            eyeTilt: (Math.random() - 0.5) * 0.08,
+            leftEyeScaleX: 1.0 + Math.random() * 0.18,
+            leftEyeScaleY: 1.08 + Math.random() * 0.2,
+            rightEyeScaleX: 1.0 + Math.random() * 0.18,
+            rightEyeScaleY: 1.08 + Math.random() * 0.2,
+            pupilInsetX: 0.18 + Math.random() * 0.06,
+            pupilInsetY: -0.16 - Math.random() * 0.05,
             isFleeing: false,
             fleeStartTime: 0,
             wobbleOffset: Math.random() * Math.PI * 2,
@@ -2663,63 +2672,93 @@ class SusuwatariCanvas {
             this.ctx.translate(wobbleX, wobbleY);
         }
 
-        // Draw spiky susuwatari body using stored pattern
         const radius = size / 2;
+        const bodyRadius = radius * particle.bodyRoundness;
+        const furInnerRadius = radius * (0.84 + particle.furDepth * 0.1);
+        const furOuterRadius = radius * (0.96 + particle.furDepth * 0.42);
 
-        // Create spiky path using the particle's unique pattern with audio reactivity and rotation
+        // Soft halo around the sprite for the fluffy silhouette.
+        const haloGradient = this.ctx.createRadialGradient(x, y, bodyRadius * 0.8, x, y, furOuterRadius * 1.04);
+        haloGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        haloGradient.addColorStop(0.68, 'rgba(0, 0, 0, 0.08)');
+        haloGradient.addColorStop(0.88, 'rgba(235, 235, 235, 0.12)');
+        haloGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        this.ctx.fillStyle = haloGradient;
         this.ctx.beginPath();
-        for (let i = 0; i < particle.spikeCount; i++) {
-            const angle = (i / particle.spikeCount) * Math.PI * 2 + particle.rotation; // Apply unique rotation
-            let radiusMultiplier = particle.spikePattern[i];
-
-            // Apply audio-reactive effect to spike length
-            const audioMultiplier = this.getAudioSpikeMultiplier(i, particle.spikeCount, particle);
-            radiusMultiplier *= audioMultiplier;
-
-            const currentRadius = radius * radiusMultiplier;
-
-            const pointX = x + Math.cos(angle) * currentRadius;
-            const pointY = y + Math.sin(angle) * currentRadius;
-
-            if (i === 0) {
-                this.ctx.moveTo(pointX, pointY);
-            } else {
-                this.ctx.lineTo(pointX, pointY);
-            }
-        }
-        this.ctx.closePath();        // Fill with gradient (muito mais escuro)
-        const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, radius);
-        gradient.addColorStop(0, '#1a1a1a'); // Centro mais escuro
-        gradient.addColorStop(0.3, '#111111'); // Meio escuro
-        gradient.addColorStop(0.7, '#080808'); // Quase preto
-        gradient.addColorStop(1, '#000000'); // Preto total
-
-        this.ctx.fillStyle = gradient;
+        this.ctx.arc(x, y, furOuterRadius * 1.05, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Add shadow
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-        this.ctx.shadowBlur = 8;
-        this.ctx.shadowOffsetX = 0;
-        this.ctx.shadowOffsetY = 0;
+        // Fur strands in two passes so the edge feels hairy instead of spiky.
+        this.ctx.lineCap = 'round';
+        for (let pass = 0; pass < 2; pass++) {
+            const passAlpha = pass === 0 ? 0.33 : 0.18;
+            const passWidth = pass === 0 ? Math.max(1, size * 0.026) : Math.max(0.7, size * 0.016);
+            const innerScale = pass === 0 ? 1.0 : 0.92;
+            const outerBoost = pass === 0 ? 1.0 : 1.06;
+
+            this.ctx.strokeStyle = pass === 0 ?
+                `rgba(8, 8, 8, ${passAlpha})` :
+                `rgba(255, 255, 255, ${passAlpha * particle.furSoftness})`;
+            this.ctx.lineWidth = passWidth;
+
+            for (let i = 0; i < particle.spikeCount; i++) {
+                const angle = (i / particle.spikeCount) * Math.PI * 2 + particle.rotation;
+                const audioMultiplier = this.getAudioSpikeMultiplier(i, particle.spikeCount, particle);
+                const audioBoost = Math.max(0, audioMultiplier - 1);
+                const furMultiplier = particle.spikePattern[i] * (0.92 + audioBoost * 0.8);
+                const innerRadius = furInnerRadius * innerScale;
+                const outerRadius = (furOuterRadius * furMultiplier * outerBoost) + (radius * audioBoost * 0.1);
+                const strandWidthBoost = 1 + (audioBoost * 0.45);
+
+                const startX = x + Math.cos(angle) * innerRadius;
+                const startY = y + Math.sin(angle) * innerRadius;
+                const endX = x + Math.cos(angle) * outerRadius;
+                const endY = y + Math.sin(angle) * outerRadius;
+
+                this.ctx.lineWidth = passWidth * strandWidthBoost;
+                this.ctx.beginPath();
+                this.ctx.moveTo(startX, startY);
+                this.ctx.lineTo(endX, endY);
+                this.ctx.stroke();
+            }
+        }
+
+        // Rounded body core.
+        const gradient = this.ctx.createRadialGradient(
+            x - bodyRadius * 0.18,
+            y - bodyRadius * 0.2,
+            bodyRadius * 0.18,
+            x,
+            y,
+            bodyRadius
+        );
+        gradient.addColorStop(0, '#161616');
+        gradient.addColorStop(0.38, '#090909');
+        gradient.addColorStop(0.72, '#020202');
+        gradient.addColorStop(1, '#000000');
+
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.72)';
+        this.ctx.shadowBlur = size * 0.14;
+        this.ctx.fillStyle = gradient;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, bodyRadius, 0, Math.PI * 2);
         this.ctx.fill();
         this.ctx.shadowBlur = 0;
 
-        // Add fuzzy texture with multiple small circles (mais escuro)
-        this.ctx.globalAlpha = 0.4;
-        for (let i = 0; i < 8; i++) {
-            const angle = (i / 8) * Math.PI * 2;
-            const radius = size * (0.1 + Math.random() * 0.2);
-            const fuzzX = x + Math.cos(angle) * radius;
-            const fuzzY = y + Math.sin(angle) * radius;
+        // Subtle interior soot texture.
+        this.ctx.globalAlpha = 0.18;
+        for (let i = 0; i < 6; i++) {
+            const angle = particle.rotation + (i / 6) * Math.PI * 2;
+            const textureRadius = bodyRadius * (0.18 + ((i % 3) * 0.08));
+            const fuzzX = x + Math.cos(angle) * textureRadius;
+            const fuzzY = y + Math.sin(angle) * textureRadius;
+            const fuzzSize = size * (0.075 + (i % 2) * 0.012);
 
-            // Textura muito mais escura (tons de preto/cinza escuro)
-            this.ctx.fillStyle = `rgba(${10 + Math.random() * 15}, ${10 + Math.random() * 15}, ${10 + Math.random() * 15}, ${0.3 + Math.random() * 0.3})`;
+            this.ctx.fillStyle = i % 2 === 0 ? 'rgba(24, 24, 24, 0.42)' : 'rgba(6, 6, 6, 0.3)';
             this.ctx.beginPath();
-            this.ctx.arc(fuzzX, fuzzY, size * 0.08, 0, Math.PI * 2);
+            this.ctx.arc(fuzzX, fuzzY, fuzzSize, 0, Math.PI * 2);
             this.ctx.fill();
         }
-
         this.ctx.globalAlpha = 1;
 
         // Draw eyes (skip if sleeping during sleep hours)
@@ -2747,45 +2786,49 @@ class SusuwatariCanvas {
                 tirednessMultiplier = 1.4; // 40% bigger eyes when dizzy
             }
 
-            const baseEyeSize = size * 0.17;
+            const baseEyeSize = size * 0.22;
 
             // Dizzy Susuwatari don't react to mouse proximity or audio
             const finalProximityMultiplier = particle.isDizzy ? 1.0 : proximityEyeMultiplier;
             const finalBassMultiplier = particle.isDizzy ? 1.0 : bassPulseMultiplier;
 
             const proximityEyeSize = baseEyeSize * finalProximityMultiplier * tirednessMultiplier;
-            const eyeSize = proximityEyeSize * finalBassMultiplier; // Apply bass pulse to eyes
-            const eyePosition = size * 0.17;
+            const eyeSize = proximityEyeSize * finalBassMultiplier; // Grave aumenta o tamanho final dos olhos
+            const eyeOffsetX = size * particle.eyeSeparation;
+            const eyeCenterY = y + size * particle.eyeOffsetY;
 
             this.ctx.globalAlpha = particle.eyeOpacity;
+            const leftEyeX = x - eyeOffsetX;
+            const leftEyeY = eyeCenterY - size * 0.008;
+            const rightEyeX = x + eyeOffsetX;
+            const rightEyeY = eyeCenterY + size * 0.008;
 
-            // Keep eyes in fixed positions (no rotation) - always in the same relative position
-            const leftEyeAngle = -Math.PI * 0.75; // Fixed 135 degrees (top-left)
-            const rightEyeAngle = -Math.PI * 0.25; // Fixed 45 degrees (top-right)
+            const drawEye = (eyeX, eyeY, scaleX, scaleY, tilt) => {
+                const eyeGradient = this.ctx.createRadialGradient(
+                    eyeX - eyeSize * 0.12,
+                    eyeY - eyeSize * 0.18,
+                    eyeSize * 0.08,
+                    eyeX,
+                    eyeY,
+                    eyeSize * 0.72
+                );
+                eyeGradient.addColorStop(0, '#ffffff');
+                eyeGradient.addColorStop(0.82, '#f4f4f4');
+                eyeGradient.addColorStop(1, '#d8d8d8');
 
-            // Left eye with fixed position
-            const leftEyeX = x + Math.cos(leftEyeAngle) * eyePosition;
-            const leftEyeY = y + Math.sin(leftEyeAngle) * eyePosition;
+                this.ctx.save();
+                this.ctx.translate(eyeX, eyeY);
+                this.ctx.rotate(tilt);
+                this.ctx.scale(finalBassMultiplier, finalBassMultiplier);
+                this.ctx.fillStyle = eyeGradient;
+                this.ctx.beginPath();
+                this.ctx.ellipse(0, 0, (proximityEyeSize * scaleX) / 2, (proximityEyeSize * scaleY) / 2, 0, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.restore();
+            };
 
-            // Eye gradient
-            const eyeGradient = this.ctx.createRadialGradient(leftEyeX, leftEyeY, 0, leftEyeX, leftEyeY, eyeSize / 2);
-            eyeGradient.addColorStop(0, '#ffffff');
-            eyeGradient.addColorStop(0.8, '#f0f0f0');
-            eyeGradient.addColorStop(1, '#e0e0e0');
-
-            this.ctx.fillStyle = eyeGradient;
-            this.ctx.beginPath();
-            this.ctx.arc(leftEyeX, leftEyeY, eyeSize / 2, 0, Math.PI * 2);
-            this.ctx.fill();
-
-            // Right eye with fixed position
-            const rightEyeX = x + Math.cos(rightEyeAngle) * eyePosition;
-            const rightEyeY = y + Math.sin(rightEyeAngle) * eyePosition;
-
-            this.ctx.fillStyle = eyeGradient;
-            this.ctx.beginPath();
-            this.ctx.arc(rightEyeX, rightEyeY, eyeSize / 2, 0, Math.PI * 2);
-            this.ctx.fill();
+            drawEye(leftEyeX, leftEyeY, particle.leftEyeScaleX, particle.leftEyeScaleY, -0.08 + particle.eyeTilt);
+            drawEye(rightEyeX, rightEyeY, particle.rightEyeScaleX, particle.rightEyeScaleY, 0.08 + particle.eyeTilt);
 
             // Draw pupils
             const pupilGradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, eyeSize * 0.2);
@@ -2795,7 +2838,7 @@ class SusuwatariCanvas {
 
             this.ctx.fillStyle = pupilGradient;
             // Pupilas dilatadas baseado na proximidade do mouse (efeito de susto/medo)
-            const basePupilSize = eyeSize * 0.4;
+            const basePupilSize = eyeSize * 0.3;
             const proximityPupilMultiplier = 1 + (proximityRatio * 0.8); // Up to 80% larger pupils when mouse is very close
             const finalPupilMultiplier = particle.isDizzy ? 1.0 : proximityPupilMultiplier;
             const pupilSize = basePupilSize * finalPupilMultiplier;
@@ -2820,8 +2863,8 @@ class SusuwatariCanvas {
                 // Left pupil
                 this.ctx.beginPath();
                 this.ctx.arc(
-                    leftEyeX + particle.leftPupilX,
-                    leftEyeY + particle.leftPupilY,
+                    leftEyeX + particle.leftPupilX + eyeSize * particle.pupilInsetX * 0.25,
+                    leftEyeY + particle.leftPupilY + eyeSize * particle.pupilInsetY * 0.25,
                     pupilSize / 2,
                     0,
                     Math.PI * 2
@@ -2831,8 +2874,8 @@ class SusuwatariCanvas {
                 // Right pupil
                 this.ctx.beginPath();
                 this.ctx.arc(
-                    rightEyeX + particle.rightPupilX,
-                    rightEyeY + particle.rightPupilY,
+                    rightEyeX + particle.rightPupilX - eyeSize * particle.pupilInsetX * 0.25,
+                    rightEyeY + particle.rightPupilY + eyeSize * particle.pupilInsetY * 0.25,
                     pupilSize / 2,
                     0,
                     Math.PI * 2
@@ -2841,17 +2884,17 @@ class SusuwatariCanvas {
             }
 
             // Add eye highlights with fixed positions
-            this.ctx.globalAlpha = particle.eyeOpacity * 0.8;
+            this.ctx.globalAlpha = particle.eyeOpacity * 0.55;
             this.ctx.fillStyle = '#ffffff';
 
             // Left eye highlight
             this.ctx.beginPath();
-            this.ctx.arc(leftEyeX - eyeSize * 0.15, leftEyeY - eyeSize * 0.15, eyeSize * 0.1, 0, Math.PI * 2);
+            this.ctx.arc(leftEyeX - eyeSize * 0.16, leftEyeY - eyeSize * 0.2, eyeSize * 0.075, 0, Math.PI * 2);
             this.ctx.fill();
 
             // Right eye highlight
             this.ctx.beginPath();
-            this.ctx.arc(rightEyeX - eyeSize * 0.15, rightEyeY - eyeSize * 0.15, eyeSize * 0.1, 0, Math.PI * 2);
+            this.ctx.arc(rightEyeX - eyeSize * 0.16, rightEyeY - eyeSize * 0.2, eyeSize * 0.075, 0, Math.PI * 2);
             this.ctx.fill();
         }
 
