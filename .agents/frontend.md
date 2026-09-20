@@ -54,21 +54,19 @@ Lively local files go through `fileToBase64DataURL` (91) because Lively cannot s
 
 ## Browser Mode
 
-Triggered when the page URL is `https://zonaro.github.io/susuwatari/...` or contains `?browser=1`.
+Triggered when the page URL is `https://zonaro.github.io/susuwatari/...` or contains `?browser=1`. `?embed=1` forces the universal/embedded mode instead (see `.agents/wallpaper-engines.md` → Engine Detection).
 
-**Settings popup** — `browser-settings.html` (standalone page opened from `openSettingsPanel` 3595):
-- Right-click anywhere or `Ctrl+Shift+S` opens it (`setupBrowserControls` 3576).
-- Sliders + checkboxes + text input; live updates on `input`/`change` (text debounced 500ms).
-- Persists to `localStorage` key `susuwatari-settings` (both page and panel read it).
-- Sends changes to the parent via `window.opener.postMessage({ type: 'susuwatari-settings-update', settings }, '*')`; the main page listens on `window.message` → `applyBrowserSettings` (3562) → `applyUserProperties`.
-- Also has "reset to defaults" (removes the localStorage key) and a mic audio init button.
+**Settings panel** — the same inline overlay used by embedded mode (`buildEmbeddedPanel`, generated from `EMBEDDED_CONTROLS`):
+- Right-click anywhere or `Ctrl+Shift+S` opens it (`setupBrowserControls` → `toggleEmbeddedSettings`).
+- Sliders + checkboxes + text input; live updates on `input`/`change`, persisted to `localStorage` key `susuwatari-settings`.
+- Auto-saves through `saveEmbeddedSettings` → `applyBrowserSettings` → `applyUserProperties`; "Reset Defaults" clears the key and re-applies defaults.
+- In browser mode the panel gains a "Browser Audio Status" section (mic init button + status), gated by `isBrowserMode` inside `buildEmbeddedPanel`; `refreshPanelAudioStatus` syncs its state each time the panel opens, `initPanelAudio` wires the button.
+- The old standalone `browser-settings.html` popup (`window.open`) was removed; `openSettingsPanel` survives only as a one-line alias of `toggleEmbeddedSettings` (kept for the first-time notification button and the `window.openSettingsPanel` export).
 
-**Browser audio** (Web Audio API, privacy-first): `initializeBrowserAudio` (3241) builds AudioContext + AnalyserNode from the microphone; `createAudioButton` (3248) renders the in-page "🎵 Enable Audio Reactivity" button; `processBrowserAudio` (3391) writes smoothed frequency data into the same fields the engine audio path uses; `cleanupBrowserAudio` (3457) tears it all down. All processing is local — nothing leaves the browser.
+**Browser audio** (Web Audio API, privacy-first): `initializeBrowserAudio` (3260) builds AudioContext + AnalyserNode from the microphone; `createAudioButton` (3267) renders the in-page "🎵 Enable Audio Reactivity" button; `processBrowserAudio` (3410) writes smoothed frequency data into the same fields the engine audio path uses; `cleanupBrowserAudio` (3476) tears it all down. All processing is local — nothing leaves the browser.
 
 **Browser-only interactions**: mouse wheel resizes sprites; left-click on empty canvas adds a sprite, on a sprite removes it; JSZip is preloaded for download features (`loadJSZip`).
 
-## Settings keys in browser-settings.html (defaultSettings, ~line 415)
+## Settings keys in the inline panel (`EMBEDDED_CONTROLS`)
 
-`susuwatariSize`, `susuwatariCount`, `fleeDistance`, `fleeAcceleration`, `eyeDilationIntensity`, `audioVisualizationEnabled`, `audioIntensity`, `bassPulseIntensity`, `sleepTime`, `sleepEnabled`, `maxRunDistance`, `restTimeout`, `zigzagMinDistance`, `backgroundImageUrl`.
-
-⚠️ `sleepTime` + `sleepEnabled` do NOT match the code keys (`sleepTimeout`, `sleepStartTime`, ...) — browser sleep controls currently have no effect. See `.agents/wallpaper-engines.md` → Known Discrepancies.
+`susuwatariSize`, `susuwatariCount`, `fleeDistance`, `fleeAcceleration`, `eyeDilationIntensity`, `audioVisualizationEnabled`, `audioIntensity`, `bassPulseIntensity`, `maxRunDistance`, `sleepTimeout`, `minVolumeToKeepAwake`, `restTimeout`, `zigzagMinDistance`, `sleepStartTime`, `sleepEndTime`, `backgroundImageUrl` — all matching the code keys (`applyUserProperties`). The dead `sleepTime` + `sleepEnabled` keys that the old popup declared are gone; the panel uses the real keys (`sleepTimeout`, `sleepStartTime`, …), so browser sleep controls work. See `.agents/wallpaper-engines.md` → Known Discrepancies.

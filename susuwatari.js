@@ -3102,7 +3102,11 @@ document.addEventListener('DOMContentLoaded', function () {
     processPendingProperties();
 
     // Detect which wallpaper engine is running
-    isBrowserMode = this.location.href.startsWith('https://zonaro.github.io/susuwatari/') || this.location.search.includes('browser=1');
+    // `embed=1` in the query string forces the universal/embedded mode: no
+    // download popups, no popup settings window, inline settings panel only.
+    // Used by Hidamari & co. when rendering the hosted page instead of a local file.
+    const isForcedEmbed = this.location.search.includes('embed=1');
+    isBrowserMode = !isForcedEmbed && (this.location.href.startsWith('https://zonaro.github.io/susuwatari/') || this.location.search.includes('browser=1'));
     isWallpaperEngine = typeof window.wallpaperRegisterAudioListener !== 'undefined';
     // Lively exposes no JS API we can sniff reliably, and generic embedded hosts
     // that render HTML as wallpaper (Hidamari, Komorebi, webkit_wallpaper...) expose
@@ -3522,22 +3526,13 @@ async function loadJSZip() {
 
 // Browser Mode Functions
 function initializeBrowserMode() {
-    console.log('Initializing browser mode with settings panel support...');
+    console.log('Initializing browser mode with inline settings panel...');
 
     // Load saved settings from localStorage
     loadBrowserSettings();
 
     // Add settings panel trigger (keyboard shortcut and right-click menu)
     setupBrowserControls();
-
-    // Listen for settings updates from popup
-    window.addEventListener('message', function (event) {
-        if (event.data && event.data.type === 'susuwatari-settings-update') {
-            console.log('Received settings update from popup:', event.data.settings);
-            applyBrowserSettings(event.data.settings);
-        }
-    });
-
 }
 
 function loadBrowserSettings() {
@@ -3591,16 +3586,16 @@ function applyBrowserSettings(settings) {
 function setupBrowserControls() {
     // Add keyboard shortcut (Ctrl+Shift+S) to open settings
     document.addEventListener('keydown', function (e) {
-        if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+        if (e.ctrlKey && e.shiftKey && (e.key === 'S' || e.key === 's')) {
             e.preventDefault();
-            openSettingsPanel();
+            toggleEmbeddedSettings();
         }
     });
 
     // Add right-click context menu for settings
     document.addEventListener('contextmenu', function (e) {
         e.preventDefault();
-        openSettingsPanel();
+        toggleEmbeddedSettings();
     });
 
     // Add notification overlay for first-time users
@@ -3714,6 +3709,10 @@ function injectEmbeddedStyles() {
         .se-actions .se-reset:hover { background: rgba(255, 255, 255, 0.2); }
         .se-actions .se-done { background: #4CAF50; color: #fff; }
         .se-actions .se-done:hover { background: #45a049; }
+        .se-audio-status { color: #ff6b6b; font-size: 14px; margin: 0 0 10px; }
+        .se-audio-btn { width: 100%; padding: 11px 16px; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; background: #4CAF50; color: #fff; transition: background-color 0.2s; }
+        .se-audio-btn:hover { background: #45a049; }
+        .se-audio-btn:disabled { opacity: 0.6; cursor: default; }
         @media (max-width: 560px) { .susuwatari-embedded-card { padding: 16px 14px 18px; } }
     `;
     document.head.appendChild(style);
@@ -3760,6 +3759,14 @@ function buildEmbeddedPanel() {
         return `<div class="se-group"><div class="se-label">${c.label}</div><div class="se-desc">${c.desc}</div><div class="se-value-row"><span>${c.min}${c.unit === 'pct' ? '%' : c.unit}</span><span class="se-value" data-value="${c.key}"></span><span>${c.max}${c.unit === 'pct' ? '%' : c.unit}</span></div><input type="range" class="se-range" data-key="${c.key}" min="${c.min}" max="${c.max}" step="${c.step}"></div>`;
     }).join('');
 
+    const audioHtml = isBrowserMode ? `
+        <div class="se-group">
+            <div class="se-label">Browser Audio Status</div>
+            <div class="se-desc">Enable microphone for audio-reactive effects in browser</div>
+            <div class="se-audio-status" id="se-audio-status">Audio not initialized</div>
+            <button type="button" class="se-audio-btn" id="se-init-audio">🎵 Enable Audio Reactivity</button>
+        </div>` : '';
+
     embeddedPanel = document.createElement('div');
     embeddedPanel.id = 'susuwatari-embedded-panel';
     embeddedPanel.innerHTML = `
@@ -3768,6 +3775,7 @@ function buildEmbeddedPanel() {
             <h2>Susuwatari Settings</h2>
             <p class="sub">Settings are saved on this device and apply instantly.</p>
             ${controlsHtml}
+            ${audioHtml}
             <div class="se-actions">
                 <button type="button" class="se-reset">Reset Defaults</button>
                 <button type="button" class="se-done">Done</button>
@@ -3847,7 +3855,51 @@ function resetEmbeddedSettings() {
 function openEmbeddedSettings() {
     buildEmbeddedPanel();
     syncEmbeddedControls();
+    refreshPanelAudioStatus();
     embeddedPanel.classList.add('open');
+}
+
+function initPanelAudio() {
+    const statusEl = embeddedPanel.querySelector('#se-audio-status');
+    const btn = embeddedPanel.querySelector('#se-init-audio');
+    if (!statusEl || !btn) return;
+    statusEl.textContent = 'Requesting microphone access...';
+    statusEl.style.color = '#ffa500';
+    btn.disabled = true;
+    setupBrowserAudio().then(() => {
+        statusEl.textContent = '✅ Audio reactivity enabled';
+        statusEl.style.color = '#4CAF50';
+        btn.textContent = '🎵 Audio Active';
+        btn.style.background = '#4CAF50';
+        btn.disabled = true;
+    }).catch((error) => {
+        console.error('Failed to initialize audio:', error);
+        statusEl.textContent = '❌ Failed to enable audio: ' + error.message;
+        statusEl.style.color = '#ff6b6b';
+        btn.disabled = false;
+        btn.textContent = '🔄 Try Again';
+    });
+}
+
+function refreshPanelAudioStatus() {
+    if (!isBrowserMode || !embeddedPanel) return;
+    const statusEl = embeddedPanel.querySelector('#se-audio-status');
+    const btn = embeddedPanel.querySelector('#se-init-audio');
+    if (!statusEl || !btn) return;
+    if (browserAudioInitialized) {
+        statusEl.textContent = '✅ Audio reactivity enabled';
+        statusEl.style.color = '#4CAF50';
+        btn.textContent = '🎵 Audio Active';
+        btn.style.background = '#4CAF50';
+        btn.disabled = true;
+    } else {
+        statusEl.textContent = 'Audio not initialized - click to enable';
+        statusEl.style.color = '#ffa500';
+        btn.textContent = '🎵 Enable Audio Reactivity';
+        btn.style.background = '#4CAF50';
+        btn.disabled = false;
+        btn.onclick = initPanelAudio;
+    }
 }
 
 function closeEmbeddedSettings() {
@@ -3877,27 +3929,7 @@ function setupEmbeddedControls() {
 }
 
 function openSettingsPanel() {
-    try {
-        // Open settings panel in a new popup window
-        const popup = window.open(
-            'browser-settings.html',
-            'susuwatari-settings',
-            'width=600,height=800,scrollbars=yes,resizable=yes,location=no,menubar=no,toolbar=no,status=no'
-        );
-
-        if (popup) {
-            console.log('Settings panel opened successfully');
-            // Focus the popup window
-            popup.focus();
-        } else {
-            console.warn('Failed to open settings panel - popup blocked?');
-            // Fallback: show alert with instructions
-            alert('Settings Panel\n\nPopup blocked! Please allow popups for this site.\n\nAlternatively, use:\n• Right-click anywhere to open settings\n• Ctrl+Shift+S keyboard shortcut');
-        }
-    } catch (e) {
-        console.error('Error opening settings panel:', e);
-        alert('Error opening settings panel. Please check browser console for details.');
-    }
+    toggleEmbeddedSettings();
 }
 
 function showBrowserModeNotification() {

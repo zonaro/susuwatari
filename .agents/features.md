@@ -19,7 +19,7 @@ Sleep happens only while all of these hold:
 
 While asleep: eyes closed, floating "ZZZ", no movement. Wake triggers: mouse activity, volume ≥ threshold, or outside sleep hours. Audio is the "gaming-friendly" gate — loud game audio keeps sprites awake at night; ambient/quiet audio lets them sleep.
 
-⚠️ The `sleepEnabled` / `sleepTime` keys present in `LivelyProperties.json` and `browser-settings.html` are **not read** anywhere in the code (see `.agents/wallpaper-engines.md`).
+⚠️ The `sleepEnabled` / `sleepTime` keys present in `LivelyProperties.json` are **not read** anywhere in the code (see `.agents/wallpaper-engines.md`).
 
 ## Dizzy & Scatter Effects
 

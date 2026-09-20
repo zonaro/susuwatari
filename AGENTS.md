@@ -13,7 +13,6 @@ Interactive, audio-reactive **Susuwatari** (Studio Ghibli soot sprites) wallpape
 susuwatari/
 ├── index.html                    # Entry point: single canvas + inline CSS, loads susuwatari.js
 ├── susuwatari.js                 # ALL application logic (~3.8k lines): class + engine bridges + browser helpers
-├── browser-settings.html         # Standalone settings popup for browser mode (postMessage channel)
 ├── project.json                  # Wallpaper Engine metadata + 16 user properties + audio flag
 ├── LivelyInfo.json               # Lively Wallpaper metadata (Type 1/Web, Arguments: "--audio")
 ├── LivelyProperties.json         # Lively Wallpaper property schema
@@ -40,7 +39,7 @@ susuwatari/
 
 1. **Keep the single-file architecture.** All runtime logic stays in `susuwatari.js`. Do not split into modules or add a build step — wallpaper engines load `index.html` as a static file.
 2. **No dependencies.** Vanilla JS only.
-3. **Properties flow one way through `applyUserProperties()`.** A new setting must be added to all four surfaces with the same camelCase key: `applyUserProperties()` + `project.json` (WE) + `LivelyProperties.json` (Lively) + `browser-settings.html` (browser).
+3. **Properties flow one way through `applyUserProperties()`.** A new setting must be added to all four surfaces with the same camelCase key: `applyUserProperties()` + `project.json` (WE) + `LivelyProperties.json` (Lively) + the inline settings panel (browser/embedded, driven by `EMBEDDED_CONTROLS` in `susuwatari.js`).
 4. **Never break the engine contracts.** These globals are load-bearing:
    - `window.wallpaperPropertyListener.applyUserProperties` (WE properties)
    - `window.wallpaperRegisterAudioListener(wallpaperAudioListener)` (WE audio)
@@ -72,6 +71,6 @@ powershell -File copy-to-wallpaper-engine.ps1
 
 ## Known Gotchas
 
-- `LivelyProperties.json` and `browser-settings.html` declare `sleepTime` + `sleepEnabled`, but the code only reads `sleepStartTime` / `sleepEndTime` / `sleepTimeout` / `minVolumeToKeepAwake` — Lively/browser sleep controls currently have no effect.
-- Browser mode is only auto-detected for the `zonaro.github.io/susuwatari` host; anything else needs `?browser=1`.
+- `LivelyProperties.json` declares `sleepTime` + `sleepEnabled`, but the code only reads `sleepStartTime` / `sleepEndTime` / `sleepTimeout` / `minVolumeToKeepAwake` — Lively sleep controls currently have no effect.
+- Browser mode is only auto-detected for the `zonaro.github.io/susuwatari` host; anything else needs `?browser=1`. `?embed=1` forces the universal/embedded mode (no download popups, inline settings panel) — how Hidamari & co. should load the hosted page.
 - Left-click removes a sprite / adds one on empty canvas; mouse wheel resizes (browser only).

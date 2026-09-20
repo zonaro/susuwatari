@@ -13,13 +13,13 @@ No modules, no imports: the file is loaded via `<script src="susuwatari.js">` in
 2. `susuwatariInstance = new SusuwatariCanvas()` — constructor seeds defaults, loads `shoes.png`.
 3. `processPendingProperties()` — flushes props that arrived before the instance existed.
 4. **Engine detection** (lines 3104–3113):
-   - **Browser**: URL starts with `https://zonaro.github.io/susuwatari/` **OR** query contains `browser=1`
+   - **Browser**: URL starts with `https://zonaro.github.io/susuwatari/` **OR** query contains `browser=1` (query `embed=1` forces embedded mode instead)
    - **Wallpaper Engine**: `typeof window.wallpaperRegisterAudioListener !== 'undefined'`
-   - **Universal/embedded mode** (Lively + Hidamari, Komorebi, webkit_wallpaper, xwinwrap…): the fallback (no flags matched) → `isLivelyWallpaper = isEmbeddedMode = true`
+   - **Universal/embedded mode** (Lively + Hidamari, Komorebi, webkit_wallpaper, xwinwrap…): the fallback (no flags matched, or `embed=1`) → `isLivelyWallpaper = isEmbeddedMode = true`
 5. Per-mode init:
    - WE → `window.wallpaperRegisterAudioListener(wallpaperAudioListener)`.
    - Browser → `initializeBrowserMode()` + `initializeBrowserAudio()` + JSZip preload.
-   - Embedded → set `window.livelyAudioListener` (3143) + apply the `defaultProperties` map (3149–3167) via `livelyPropertyListener` + `setupEmbeddedControls()` (3176) for the inline settings panel.
+   - Embedded → set `window.livelyAudioListener` (3147) + apply the `defaultProperties` map (3153–3171) via `livelyPropertyListener` + `setupEmbeddedControls()` (3180) for the inline settings panel.
 
 ## Class Map (SusuwatariCanvas)
 
@@ -52,8 +52,8 @@ No modules, no imports: the file is loaded via `<script src="susuwatari.js">` in
 | `isBrowserMode` / `isLivelyWallpaper` / `isWallpaperEngine` / `isEmbeddedMode` | 3089–3092 | Mode flags (default: embedded/Lively=true) |
 | `detectBPM(audioArray, sampleRate = 44100)` | 3188 | BPM estimation from raw audio samples |
 | Browser audio module | 3256–3523 | Web Audio API (mic), enable button, notifications, cleanup |
-| Browser mode module | 3524–3608 | Settings load/apply, controls, settings popup, JSZip |
-| Embedded mode module | 3610–3875 | Inline settings panel (no popup), gear button, Ctrl+Shift+S, right-click, localStorage |
+| Browser mode module | 3528–3608 | Settings load/apply, browser controls (inline panel triggers), download notification, JSZip |
+| Embedded/browser settings module | 3610–3940 | Inline settings panel (shared by browser + embedded modes), gear button, Ctrl+Shift+S, right-click, localStorage, browser audio section |
 
 ## Main Loop — `animate()` (2996)
 

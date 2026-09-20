@@ -229,7 +229,7 @@ Susuwatari runs on any desktop wallpaper program that renders web pages. On Linu
 5. Navigate to the folder you extracted/cloned and select the **`index.html`** file (or the folder that contains it).
 6. Click **Apply** (or double-click the thumbnail) — Susuwatari starts immediately.
 
-> 💡 **Prefer the local file method.** Opening the live GitHub Pages URL inside Hidamari enables *browser mode* (with animation and microphone prompts) instead of embedded mode — the local `index.html` gives you the cleanest desktop-wallpaper experience.
+> 💡 **Prefer the local file method.** Opening the live GitHub Pages URL inside Hidamari enables *browser mode* (with animation and microphone prompts) instead of embedded mode — the local `index.html` gives you the cleanest desktop-wallpaper experience. If you do use the hosted page, append `?embed=1` to the URL to force embedded mode (no download/microphone prompts, inline settings panel).
 
 #### Using the Wallpaper on Hidamari
 
@@ -276,8 +276,8 @@ Access settings through wallpaper software
 **Web Browser Mode:**
 ```
 🎮 Scroll: Adjust Susuwatari size
-🖱️ Right Click: Open settings panel popup
-⌨️ Ctrl+Shift+S: Open settings panel popup (keyboard shortcut)
+🖱️ Right Click: Open settings panel (inline overlay)
+⌨️ Ctrl+Shift+S: Open settings panel (keyboard shortcut)
 🎵 Audio Setup: Click "Enable Audio Reactivity" button when prompted
 ```
 
