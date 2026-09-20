@@ -3,7 +3,7 @@
 Single-file ES6+ application in two layers, both inside `susuwatari.js` (~3.8k lines):
 
 1. **`SusuwatariCanvas` class** (lines 1–3038) — simulation + rendering engine.
-2. **Global bootstrap layer** (lines 3040+) — wallpaper engine bridges + browser-mode helpers.
+2. **Global bootstrap layer** (lines 3040+) — wallpaper engine bridges + browser-mode helpers + embedded-mode (Linux/Hidamari) inline settings panel.
 
 No modules, no imports: the file is loaded via `<script src="susuwatari.js">` in `index.html`.
 
@@ -12,14 +12,14 @@ No modules, no imports: the file is loaded via `<script src="susuwatari.js">` in
 1. `DOMContentLoaded` (line 3095) fires.
 2. `susuwatariInstance = new SusuwatariCanvas()` — constructor seeds defaults, loads `shoes.png`.
 3. `processPendingProperties()` — flushes props that arrived before the instance existed.
-4. **Engine detection** (lines 3104–3106):
+4. **Engine detection** (lines 3104–3113):
    - **Browser**: URL starts with `https://zonaro.github.io/susuwatari/` **OR** query contains `browser=1`
    - **Wallpaper Engine**: `typeof window.wallpaperRegisterAudioListener !== 'undefined'`
-   - **Lively Wallpaper**: the fallback (no flags matched)
+   - **Universal/embedded mode** (Lively + Hidamari, Komorebi, webkit_wallpaper, xwinwrap…): the fallback (no flags matched) → `isLivelyWallpaper = isEmbeddedMode = true`
 5. Per-mode init:
    - WE → `window.wallpaperRegisterAudioListener(wallpaperAudioListener)`.
    - Browser → `initializeBrowserMode()` + `initializeBrowserAudio()` + JSZip preload.
-   - Lively → set `window.livelyAudioListener` + apply the `defaultProperties` map (3140–3157) via `livelyPropertyListener`.
+   - Embedded → set `window.livelyAudioListener` (3143) + apply the `defaultProperties` map (3149–3167) via `livelyPropertyListener` + `setupEmbeddedControls()` (3176) for the inline settings panel.
 
 ## Class Map (SusuwatariCanvas)
 
@@ -49,10 +49,11 @@ No modules, no imports: the file is loaded via `<script src="susuwatari.js">` in
 | `pendingProperties` / `processPendingProperties()` | 3051 / 3067 | Pre-init WE property queue |
 | `window.wallpaperPropertyListener.applyUserProperties` | 3054 | WE property bridge (normalizes + forwards) |
 | `livelyPropertyListener(name, val)` | 3080 | Lively property bridge (camelCase, "no conversion needed") |
-| `isBrowserMode` / `isLivelyWallpaper` / `isWallpaperEngine` | 3089–3091 | Mode flags (default: Lively=true) |
-| `detectBPM(audioArray, sampleRate = 44100)` | 3173 | BPM estimation from raw audio samples |
-| Browser audio module | 3235–3470 | Web Audio API (mic), enable button, notifications, cleanup |
-| Browser mode module | 3509–end | Settings load/apply, controls, settings popup, JSZip |
+| `isBrowserMode` / `isLivelyWallpaper` / `isWallpaperEngine` / `isEmbeddedMode` | 3089–3092 | Mode flags (default: embedded/Lively=true) |
+| `detectBPM(audioArray, sampleRate = 44100)` | 3188 | BPM estimation from raw audio samples |
+| Browser audio module | 3256–3523 | Web Audio API (mic), enable button, notifications, cleanup |
+| Browser mode module | 3524–3608 | Settings load/apply, controls, settings popup, JSZip |
+| Embedded mode module | 3610–3875 | Inline settings panel (no popup), gear button, Ctrl+Shift+S, right-click, localStorage |
 
 ## Main Loop — `animate()` (2996)
 

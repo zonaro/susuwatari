@@ -1,6 +1,6 @@
 # Wallpaper Engine & Lively Wallpaper Integration
 
-Identical experience on Wallpaper Engine (Steam), Lively Wallpaper, and the browser. Platform-specific code lives only in the global bootstrap layer of `susuwatari.js` (lines 3040+).
+Identical experience on Wallpaper Engine (Steam), Lively Wallpaper, the browser, and Linux web-page wallpapers (Hidamari, Komorebi, webkit_wallpaper, xwinwrap…). Platform-specific code lives only in the global bootstrap layer of `susuwatari.js` (lines 3040+).
 
 ## Engine Detection (DOMContentLoaded, 3104)
 
@@ -8,17 +8,17 @@ Identical experience on Wallpaper Engine (Steam), Lively Wallpaper, and the brow
 |--------|-----------|-----------|
 | Browser | URL host `zonaro.github.io/susuwatari/` or `?browser=1` | Browser helpers + Web Audio mic |
 | Wallpaper Engine | `typeof window.wallpaperRegisterAudioListener !== 'undefined'` | Register audio listener; properties via WE bridge |
-| Lively | Fallback (no flag matched) | `window.livelyAudioListener` + boot defaults |
+| Universal/embedded (Lively, Hidamari, Komorebi…) | Fallback (no flag matched) | `window.livelyAudioListener` + boot defaults + inline settings panel |
 
 ## Global Contracts (load-bearing — never rename)
 
 | Engine | Properties | Audio |
 |--------|-----------|-------|
 | WE | `window.wallpaperPropertyListener.applyUserProperties(props)` (3054) | `window.wallpaperRegisterAudioListener(wallpaperAudioListener)` → method (194) |
-| Lively | `window.livelyPropertyListener(name, val)` (3080) | `window.livelyAudioListener(audioArray)` (3134) |
+| Lively / embedded | `window.livelyPropertyListener(name, val)` (3080) | `window.livelyAudioListener(audioArray)` (3143) |
 
 - WE may push properties before the instance exists → queued in `pendingProperties` (3051), flushed by `processPendingProperties` (3067).
-- Lively gets defaults at boot from the `defaultProperties` map (3140–3157) via `livelyPropertyListener`.
+- Embedded/universal mode gets defaults at boot from the `defaultProperties` map (3149–3167) via `livelyPropertyListener`, then calls `setupEmbeddedControls()` (3176) to add the inline settings panel (gear button, Ctrl+Shift+S, right-click; persists to `localStorage` under `susuwatari-settings`).
 - Property keys are **camelCase** on both engines (code comment at 3083: "no conversion needed").
 
 ## Property Schemas
@@ -51,8 +51,8 @@ Engine config extras: `project.json` → `"supportsaudioprocessing": true` (top-
 
 ## Known Discrepancies (danger)
 
-1. **Sleep key mismatch**: code reads only `sleepStartTime` / `sleepEndTime` / `sleepTimeout` / `minVolumeToKeepAwake`. `LivelyProperties.json` and `browser-settings.html` instead declare `sleepTime` + `sleepEnabled` (and Lively lacks the window/volume keys). Consequence: Lively sleep controls and browser-panel sleep controls have **no effect** — boot defaults (3140–3157) cover the real keys, but user changes to `sleepTime`/`sleepEnabled` are ignored.
-2. **Missing boot default**: `eyeDilationIntensity` is absent from the Lively `defaultProperties` map (3140–3157) although present in both JSON files — a fresh Lively session starts at the class default (1) until the engine pushes the value.
+1. **Sleep key mismatch**: code reads only `sleepStartTime` / `sleepEndTime` / `sleepTimeout` / `minVolumeToKeepAwake`. `LivelyProperties.json` and `browser-settings.html` instead declare `sleepTime` + `sleepEnabled` (and Lively lacks the window/volume keys). Consequence: Lively sleep controls and browser-panel sleep controls have **no effect** — boot defaults (3149–3167) cover the real keys, but user changes to `sleepTime`/`sleepEnabled` are ignored. Note: the embedded-mode panel (3610+) uses the **real** keys, so Linux/Hidamari sleep controls work.
+2. ~~**Missing boot default**: `eyeDilationIntensity` absent from the Lively `defaultProperties` map~~ — **FIXED** (3164): now present in the universal-mode defaults, matching the class default (1).
 3. **`resetToDefaults` drift**: the browser panel resets to its own `defaultSettings` (~line 415), not to the code defaults — the two lists can diverge.
 
 ## Local Background Files — per engine
@@ -73,4 +73,5 @@ Engine config extras: `project.json` → `"supportsaudioprocessing": true` (top-
 2. `project.json` → `general.properties`: add the UI control (keep `index`/`order` sequential).
 3. `LivelyProperties.json`: add the matching control.
 4. `browser-settings.html`: add the control, a `defaultSettings` key, and a value-display updater.
-5. Keep the key identically camelCase everywhere; test in both engines + browser.
+5. Embedded/universal mode: add the control to `EMBEDDED_CONTROLS` (3623) — the inline Linux/Hidamari panel is generated from this array.
+6. Keep the key identically camelCase everywhere; test in both engines + browser + a Linux web-wallpaper host (e.g. Hidamari).

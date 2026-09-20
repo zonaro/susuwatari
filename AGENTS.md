@@ -46,7 +46,7 @@ susuwatari/
    - `window.wallpaperRegisterAudioListener(wallpaperAudioListener)` (WE audio)
    - `window.livelyPropertyListener(name, value)` (Lively properties)
    - `window.livelyAudioListener(audioArray)` (Lively audio)
-5. **Engine mode is detected at boot** (`DOMContentLoaded`, ~line 3104): browser by URL/`browser=1`, WE by presence of `wallpaperRegisterAudioListener`, Lively as fallback. Never hardcode a mode.
+5. **Engine mode is detected at boot** (`DOMContentLoaded`, ~line 3104): browser by URL/`browser=1`, WE by presence of `wallpaperRegisterAudioListener`, everything else falls back to the universal/embedded mode (Lively, Hidamari, Komorebi, webkit_wallpaper… — `isEmbeddedMode`). Never hardcode a mode.
 6. **Heavy `console.log` debugging is the house style** — keep it.
 7. **No tests, no linter.** Verification = open in browser and both engines. Commit style: `feat:` / `fix:` prefixes, messages in Portuguese (per repo history).
 

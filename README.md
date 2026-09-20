@@ -4,7 +4,7 @@
 
 # Susuwatari - Interactive Audio-Reactive Wallpaper
 
-An interactive implementation of the famous Susuwatari (soot sprites) from Studio Ghibli films, especially "Spirited Away" and "My Neighbor Totoro", compatible with both **Wallpaper Engine** and **Lively Wallpaper** with audio-reactive features.
+An interactive implementation of the famous Susuwatari (soot sprites) from Studio Ghibli films, especially "Spirited Away" and "My Neighbor Totoro", compatible with **Wallpaper Engine**, **Lively Wallpaper** and Linux wallpaper programs such as **Hidamari** — any program that renders web pages as wallpapers.
 
 
 
@@ -201,6 +201,49 @@ An interactive implementation of the famous Susuwatari (soot sprites) from Studi
 2. Open Lively Wallpaper
 3. Click "Add Wallpaper" → "Browse" → Select the .zip file
 
+### Linux — Hidamari & Other Web-Page Wallpaper Programs
+
+Susuwatari runs on any desktop wallpaper program that renders web pages. On Linux it is fully supported by [Hidamari](https://github.com/jeffshee/hidamari), and also works with similar tools (Komorebi, `webkit_wallpaper`, xwinwrap-based solutions). When loaded this way the wallpaper automatically switches to its built-in **embedded mode** — no engine API, plugins or metadata files are required; it runs straight from local files via `file://`.
+
+#### Installing Hidamari (if you don't have it yet)
+
+1. Install Hidamari through your package manager, [Flathub](https://flathub.org/apps/io.github.jeffshee.Hidamari) or the [AUR](https://aur.archlinux.org/packages/hidamari):
+   ```bash
+   # Flatpak (recommended)
+   flatpak install flathub io.github.jeffshee.Hidamari
+
+   # Arch Linux / Manjaro (AUR)
+   yay -S hidamari
+   ```
+2. Launch Hidamari from your application menu.
+
+#### Adding Susuwatari to Hidamari
+
+1. **Get the files** — download this repository as a ZIP and extract it, or clone it into a permanent location. Hidamari keeps pointing to these files, so don't move or delete them afterwards:
+   ```bash
+   git clone https://github.com/zonaro/susuwatari.git ~/susuwatari
+   ```
+2. Open Hidamari and go to the **Wallpaper** tab.
+3. Click **+** (Add Wallpaper).
+4. Choose **Web Page** → **Local Web Page**.
+5. Navigate to the folder you extracted/cloned and select the **`index.html`** file (or the folder that contains it).
+6. Click **Apply** (or double-click the thumbnail) — Susuwatari starts immediately.
+
+> 💡 **Prefer the local file method.** Opening the live GitHub Pages URL inside Hidamari enables *browser mode* (with animation and microphone prompts) instead of embedded mode — the local `index.html` gives you the cleanest desktop-wallpaper experience.
+
+#### Using the Wallpaper on Hidamari
+
+- **Open settings**: click the **⚙ gear button** at the bottom-right corner to open the full settings panel, or press **Ctrl+Shift+S**. Right-click also opens it, but Hidamari may intercept right-click with its own menu — the gear button is the most reliable path.
+- **Click to play**: click on an empty area to add a Susuwatari, or click on one to remove it.
+- **Settings persistence**: your adjustments are saved locally and restored on the next launch.
+- **Custom background**: use the "Background Image URL" field in the settings panel with an `http://` / `https://` image link.
+
+#### Linux/Embedded Mode Limitations
+
+- **No audio reactivity**: Hidamari (like most Linux wallpaper tools) does not expose audio data to web pages, so the audio-reactive features (music-reactive spikes, bass eye pulsing) stay inactive. All other interactions work normally.
+- **No local background file picker**: only web URLs are accepted for the background image in this mode.
+- **Mouse wheel size adjustment is browser mode only** — in embedded mode use the "Susuwatari Size" slider in the settings panel instead.
+
 ### Web Browser (Any Modern Browser)
 1. Navigate to http://zonaro.github.io/susuwatari
 2. Right-click to open settings menu
@@ -236,6 +279,13 @@ Access settings through wallpaper software
 🖱️ Right Click: Open settings panel popup
 ⌨️ Ctrl+Shift+S: Open settings panel popup (keyboard shortcut)
 🎵 Audio Setup: Click "Enable Audio Reactivity" button when prompted
+```
+
+**Linux / Embedded Mode (Hidamari, Komorebi, etc.):**
+```
+⚙️ Gear Button: Open settings panel (bottom-right corner)
+⌨️ Ctrl+Shift+S: Open settings panel (keyboard shortcut)
+🖱️ Right Click: Open settings panel (when not intercepted by the host)
 ```
 
 ### Browser Audio Setup:
@@ -309,7 +359,7 @@ Access settings through wallpaper software
 - **JavaScript ES6+**: Physics simulation and interaction logic
 - **Wallpaper Engine API**: Properties and audio integration
 - **Lively Wallpaper API**: Properties and audio integration  
-- **Dual Compatibility System**: Automatic engine detection and adaptation
+- **Universal Compatibility System**: Automatic mode detection (Wallpaper Engine, Lively Wallpaper, browser and embedded/Linux modes)
 
 ## Performance
 
