@@ -233,7 +233,7 @@ Susuwatari runs on any desktop wallpaper program that renders web pages. On Linu
 
 #### Using the Wallpaper on Hidamari
 
-- **Open settings**: click the **⚙ gear button** at the bottom-right corner to open the full settings panel, or press **Ctrl+Shift+S**. Right-click also opens it, but Hidamari may intercept right-click with its own menu — the gear button is the most reliable path.
+- **Open settings**: click the **⚙ gear button** at the bottom-right corner to open the full settings panel, or press **Ctrl+Shift+S**. Middle-click also opens it — the gear button is the most reliable path.
 - **Click to play**: click on an empty area to add a Susuwatari, or click on one to remove it.
 - **Settings persistence**: your adjustments are saved locally and restored on the next launch.
 - **Custom background**: use the "Background Image URL" field in the settings panel with an `http://` / `https://` image link.
@@ -246,7 +246,7 @@ Susuwatari runs on any desktop wallpaper program that renders web pages. On Linu
 
 ### Web Browser (Any Modern Browser)
 1. Navigate to http://zonaro.github.io/susuwatari
-2. Right-click to open settings menu
+2. Middle-click to open settings menu
  
 
 #### Browser Mode Features:
@@ -254,7 +254,7 @@ Susuwatari runs on any desktop wallpaper program that renders web pages. On Linu
 - 🎵 **Web Audio API Integration**: Real-time audio reactivity using microphone input
 - � **Privacy-First Audio**: Audio processing happens locally, no data leaves your browser
 - �💾 **Persistent Settings**: Configurations saved locally and restored on reload
-- 🖱️ **Easy Access**: Right-click or keyboard shortcut to open settings
+- 🖱️ **Easy Access**: Middle-click or keyboard shortcut to open settings
 - 🌐 **Universal Compatibility**: Works in all modern web browsers
 - 📱 **Responsive Interface**: Settings panel adapts to different screen sizes
 - ⚡ **Real-time Controls**: Audio enable/disable with instant visual feedback
@@ -276,7 +276,7 @@ Access settings through wallpaper software
 **Web Browser Mode:**
 ```
 🎮 Scroll: Adjust Susuwatari size
-🖱️ Right Click: Open settings panel (inline overlay)
+🖱️ Middle Click: Open settings panel (inline overlay)
 ⌨️ Ctrl+Shift+S: Open settings panel (keyboard shortcut)
 🎵 Audio Setup: Click "Enable Audio Reactivity" button when prompted
 ```
@@ -285,7 +285,7 @@ Access settings through wallpaper software
 ```
 ⚙️ Gear Button: Open settings panel (bottom-right corner)
 ⌨️ Ctrl+Shift+S: Open settings panel (keyboard shortcut)
-🖱️ Right Click: Open settings panel (when not intercepted by the host)
+🖱️ Middle Click: Open settings panel (inline overlay)
 ```
 
 ### Browser Audio Setup:
@@ -293,7 +293,7 @@ Access settings through wallpaper software
 2. **Enable Audio**: Click the "🎵 Enable Audio Reactivity" button that appears
 3. **Grant Permission**: Allow microphone access when prompted by browser
 4. **Start Playing**: Play music or make sounds to see Susuwatari react
-5. **Adjust Settings**: Use Right-click → Audio settings to control reactivity intensity
+5. **Adjust Settings**: Use Middle-click → Audio settings to control reactivity intensity
 
 **Note**: Browser audio uses your microphone for reactivity. All processing happens locally - no audio data leaves your browser.
 

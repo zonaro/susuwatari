@@ -18,7 +18,7 @@ Identical experience on Wallpaper Engine (Steam), Lively Wallpaper, the browser,
 | Lively / embedded | `window.livelyPropertyListener(name, val)` (3080) | `window.livelyAudioListener(audioArray)` (3147) |
 
 - WE may push properties before the instance exists → queued in `pendingProperties` (3051), flushed by `processPendingProperties` (3067).
-- Embedded/universal mode gets defaults at boot from the `defaultProperties` map (3153–3171) via `livelyPropertyListener`, then calls `setupEmbeddedControls()` (3180) to add the inline settings panel (gear button, Ctrl+Shift+S, right-click; persists to `localStorage` under `susuwatari-settings`).
+- Embedded/universal mode gets defaults at boot from the `defaultProperties` map (3153–3171) via `livelyPropertyListener`, then calls `setupEmbeddedControls()` (3180) to add the inline settings panel (gear button, Ctrl+Shift+S, middle-click; persists to `localStorage` under `susuwatari-settings`).
 - Property keys are **camelCase** on both engines (code comment at 3083: "no conversion needed").
 
 ## Property Schemas

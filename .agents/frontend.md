@@ -57,7 +57,7 @@ Lively local files go through `fileToBase64DataURL` (91) because Lively cannot s
 Triggered when the page URL is `https://zonaro.github.io/susuwatari/...` or contains `?browser=1`. `?embed=1` forces the universal/embedded mode instead (see `.agents/wallpaper-engines.md` → Engine Detection).
 
 **Settings panel** — the same inline overlay used by embedded mode (`buildEmbeddedPanel`, generated from `EMBEDDED_CONTROLS`):
-- Right-click anywhere or `Ctrl+Shift+S` opens it (`setupBrowserControls` → `toggleEmbeddedSettings`).
+- Middle-click anywhere or `Ctrl+Shift+S` opens it (`setupBrowserControls` → `toggleEmbeddedSettings`).
 - Sliders + checkboxes + text input; live updates on `input`/`change`, persisted to `localStorage` key `susuwatari-settings`.
 - Auto-saves through `saveEmbeddedSettings` → `applyBrowserSettings` → `applyUserProperties`; "Reset Defaults" clears the key and re-applies defaults.
 - In browser mode the panel gains a "Browser Audio Status" section (mic init button + status), gated by `isBrowserMode` inside `buildEmbeddedPanel`; `refreshPanelAudioStatus` syncs its state each time the panel opens, `initPanelAudio` wires the button.

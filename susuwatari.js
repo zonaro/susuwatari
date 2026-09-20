@@ -3531,7 +3531,7 @@ function initializeBrowserMode() {
     // Load saved settings from localStorage
     loadBrowserSettings();
 
-    // Add settings panel trigger (keyboard shortcut and right-click menu)
+    // Add settings panel trigger (keyboard shortcut and middle-click)
     setupBrowserControls();
 }
 
@@ -3592,10 +3592,12 @@ function setupBrowserControls() {
         }
     });
 
-    // Add right-click context menu for settings
-    document.addEventListener('contextmenu', function (e) {
-        e.preventDefault();
-        toggleEmbeddedSettings();
+    // Add middle-click trigger (mouse button 1) to open settings
+    document.addEventListener('auxclick', function (e) {
+        if (e.button === 1) {
+            e.preventDefault();
+            toggleEmbeddedSettings();
+        }
     });
 
     // Add notification overlay for first-time users
@@ -3922,9 +3924,11 @@ function setupEmbeddedControls() {
             toggleEmbeddedSettings();
         }
     });
-    document.addEventListener('contextmenu', function (e) {
-        e.preventDefault();
-        toggleEmbeddedSettings();
+    document.addEventListener('auxclick', function (e) {
+        if (e.button === 1) {
+            e.preventDefault();
+            toggleEmbeddedSettings();
+        }
     });
 }
 
@@ -3992,7 +3996,7 @@ function showBrowserModeNotification() {
             <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 12px; margin-top: 12px;">
                 <div style="font-weight: bold; margin-bottom: 8px; color: #4CAF50;">⚙️ Customization:</div>
                 <div style="font-size: 12px; color: #ccc; margin-bottom: 10px;">
-                    • Right-click for settings<br>
+                    • Middle-click for settings<br>
                     • Press Ctrl+Shift+S<br>
                     • Settings saved locally
                 </div>

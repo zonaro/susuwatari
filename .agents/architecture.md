@@ -53,7 +53,7 @@ No modules, no imports: the file is loaded via `<script src="susuwatari.js">` in
 | `detectBPM(audioArray, sampleRate = 44100)` | 3188 | BPM estimation from raw audio samples |
 | Browser audio module | 3256–3523 | Web Audio API (mic), enable button, notifications, cleanup |
 | Browser mode module | 3528–3608 | Settings load/apply, browser controls (inline panel triggers), download notification, JSZip |
-| Embedded/browser settings module | 3610–3940 | Inline settings panel (shared by browser + embedded modes), gear button, Ctrl+Shift+S, right-click, localStorage, browser audio section |
+| Embedded/browser settings module | 3610–3940 | Inline settings panel (shared by browser + embedded modes), gear button, Ctrl+Shift+S, middle-click, localStorage, browser audio section |
 
 ## Main Loop — `animate()` (2996)
 
