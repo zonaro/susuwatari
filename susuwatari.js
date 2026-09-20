@@ -3089,6 +3089,7 @@ function livelyPropertyListener(name, val) {
 let isBrowserMode = false;
 let isLivelyWallpaper = true;
 let isWallpaperEngine = false;
+let isEmbeddedMode = false; // Universal host mode: Hidamari, Komorebi, webkit_wallpaper, xwinwrap, etc.
 
 
 // Initialize the wallpaper
@@ -3103,11 +3104,18 @@ document.addEventListener('DOMContentLoaded', function () {
     // Detect which wallpaper engine is running
     isBrowserMode = this.location.href.startsWith('https://zonaro.github.io/susuwatari/') || this.location.search.includes('browser=1');
     isWallpaperEngine = typeof window.wallpaperRegisterAudioListener !== 'undefined';
+    // Lively exposes no JS API we can sniff reliably, and generic embedded hosts
+    // that render HTML as wallpaper (Hidamari, Komorebi, webkit_wallpaper...) expose
+    // none at all. The fallback below therefore covers ALL of them as one "universal"
+    // mode: Lively's listeners stay exposed (harmless when the host never calls them)
+    // and the inline settings panel is enabled so properties stay adjustable anywhere.
     isLivelyWallpaper = !isBrowserMode && !isWallpaperEngine;
+    isEmbeddedMode = isLivelyWallpaper;
 
     console.log('Wallpaper Engine Detection:');
     console.log('- Wallpaper Engine:', isWallpaperEngine);
     console.log('- Lively Wallpaper:', isLivelyWallpaper);
+    console.log('- Embedded Mode (Hidamari/others):', isEmbeddedMode);
     console.log('- Browser Mode:', isBrowserMode);
 
     // Initialize audio for the detected engine
@@ -3131,12 +3139,13 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
     } else {
+        console.log('Initializing universal/embedded mode (Lively, Hidamari, WolfX, etc.)...');
         window.livelyAudioListener = function (audioArray) {
             if (susuwatariInstance) {
                 susuwatariInstance.wallpaperAudioListener(audioArray);
             }
         }
-        // Load default properties for Lively Wallpaper
+        // Load default properties for the universal mode
         const defaultProperties = {
             'susuwatariSize': 18,
             'susuwatariCount': 100,
@@ -3152,6 +3161,7 @@ document.addEventListener('DOMContentLoaded', function () {
             'minVolumeToKeepAwake': 0.1,
             'restTimeout': 5,
             'zigzagMinDistance': 150,
+            'eyeDilationIntensity': 1,
             'backgroundImageUrl': '',
             'backgroundImagePicker': null
         };
@@ -3160,6 +3170,11 @@ document.addEventListener('DOMContentLoaded', function () {
         Object.keys(defaultProperties).forEach(key => {
             livelyPropertyListener(key, defaultProperties[key]);
         });
+
+        // Enable the inline settings panel for hosts without a properties API
+        if (isEmbeddedMode) {
+            setupEmbeddedControls();
+        }
 
     }
 });
@@ -3592,6 +3607,275 @@ function setupBrowserControls() {
     showBrowserModeNotification();
 }
 
+// ============================================================
+// Embedded / Universal Mode (Hidamari, Komorebi, webkit_wallpaper, etc.)
+// ============================================================
+// Hosts that render HTML wallpapers (e.g. Hidamari via WebKitGTK) expose no
+// property/audio API and read no metadata file. This mode adds an INLINE
+// settings overlay (no window.open dependency) with localStorage persistence.
+
+const EMBEDDED_STYLE_ID = 'susuwatari-embedded-style';
+let embeddedPanel = null;
+let embeddedToggleBtn = null;
+let embeddedPanelBuilt = false;
+
+// Control definitions shared by the inline panel (keys match applyUserProperties)
+const EMBEDDED_CONTROLS = [
+    { key: 'susuwatariSize', type: 'slider', label: 'Susuwatari Size', desc: 'Controls the base size of each Susuwatari sprite', min: 10, max: 150, step: 1, unit: 'px', def: 18 },
+    { key: 'susuwatariCount', type: 'slider', label: 'Susuwatari Count', desc: 'Number of Susuwatari sprites on screen', min: 1, max: 150, step: 1, unit: '', def: 100 },
+    { key: 'fleeDistance', type: 'slider', label: 'Mouse Detection Distance', desc: 'How close the mouse can get before Susuwatari start fleeing', min: 10, max: 100, step: 1, unit: 'px', def: 80 },
+    { key: 'fleeAcceleration', type: 'slider', label: 'Flee Acceleration', desc: 'How fast Susuwatari accelerate when fleeing from the mouse', min: 1, max: 8, step: 0.1, unit: 'x', def: 4 },
+    { key: 'eyeDilationIntensity', type: 'slider', label: 'Eye Dilation Intensity', desc: 'How much the eyes dilate when the mouse approaches', min: 1, max: 10, step: 1, unit: 'x', def: 1 },
+    { key: 'audioVisualizationEnabled', type: 'checkbox', label: 'Audio Visualization', desc: 'Master toggle for all audio-reactive effects (no effect without an audio API)' },
+    { key: 'audioIntensity', type: 'slider', label: 'Audio Reactivity Intensity', desc: 'How strongly the spikes react to audio frequencies', min: 0, max: 3, step: 0.1, unit: 'x', def: 1 },
+    { key: 'bassPulseIntensity', type: 'slider', label: 'Bass Pulse Intensity', desc: 'How much the eyes grow with bass frequencies', min: 0, max: 3, step: 0.1, unit: 'x', def: 1 },
+    { key: 'maxRunDistance', type: 'slider', label: 'Max Run Distance', desc: 'Distance Susuwatari can run before getting tired', min: 100, max: 800, step: 10, unit: 'px', def: 300 },
+    { key: 'sleepTimeout', type: 'slider', label: 'Sleep Timeout', desc: 'Time before Susuwatari fall asleep when idle (within sleep hours, low volume)', min: 3, max: 60, step: 1, unit: 's', def: 10 },
+    { key: 'minVolumeToKeepAwake', type: 'slider', label: 'Min Volume to Keep Awake', desc: 'Audio volume threshold to keep Susuwatari awake during sleep hours', min: 0, max: 1, step: 0.05, unit: 'pct', def: 0.1 },
+    { key: 'restTimeout', type: 'slider', label: 'Rest Timeout When Dizzy', desc: 'Time to rest when Susuwatari become dizzy from rapid mouse movement', min: 2, max: 15, step: 1, unit: 's', def: 5 },
+    { key: 'zigzagMinDistance', type: 'slider', label: 'Zigzag Effect Min Distance', desc: 'Minimum distance to trigger the zigzag scatter effect', min: 50, max: 400, step: 10, unit: 'px', def: 150 },
+    { key: 'sleepStartTime', type: 'text', label: 'Sleep Time Start (24h)', desc: 'Start of the sleep window, e.g. 22:00', placeholder: '22:00', def: '22:00' },
+    { key: 'sleepEndTime', type: 'text', label: 'Sleep Time End (24h)', desc: 'End of the sleep window, e.g. 06:00', placeholder: '06:00', def: '06:00' },
+    { key: 'backgroundImageUrl', type: 'text', label: 'Background Image URL', desc: 'Web URL (http/https) to a background image', placeholder: 'https://example.com/image.jpg', def: '' }
+];
+
+function injectEmbeddedStyles() {
+    if (document.getElementById(EMBEDDED_STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = EMBEDDED_STYLE_ID;
+    style.textContent = `
+        #susuwatari-embedded-toggle {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(13, 27, 42, 0.55);
+            cursor: pointer;
+            z-index: 99990;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.45;
+            transition: opacity 0.2s ease, background 0.2s ease, transform 0.2s ease;
+            padding: 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+        }
+        #susuwatari-embedded-toggle:hover { opacity: 1; background: rgba(13, 27, 42, 0.85); transform: scale(1.08); }
+        #susuwatari-embedded-toggle svg { width: 20px; height: 20px; fill: #cfd8ff; }
+        #susuwatari-embedded-panel {
+            position: fixed;
+            inset: 0;
+            z-index: 100000;
+            background: rgba(0, 0, 0, 0.45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+        }
+        #susuwatari-embedded-panel.open { display: flex; }
+        .susuwatari-embedded-card {
+            width: min(520px, 92vw);
+            max-height: 85vh;
+            overflow-y: auto;
+            background: linear-gradient(160deg, #16213e, #0f3460);
+            color: #fff;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            padding: 22px 24px 24px;
+            position: relative;
+            scrollbar-width: thin;
+        }
+        .susuwatari-embedded-card h2 { margin: 0 0 4px; font-size: 20px; font-weight: 500; text-align: center; }
+        .susuwatari-embedded-card .sub { text-align: center; font-size: 12px; color: #9fb2d8; margin: 0 0 16px; }
+        .susuwatari-embedded-close {
+            position: absolute; top: 10px; right: 12px;
+            background: rgba(255, 255, 255, 0.08); border: none; color: #fff;
+            width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1;
+        }
+        .susuwatari-embedded-close:hover { background: rgba(255, 255, 255, 0.2); }
+        .se-group { margin-bottom: 16px; padding: 12px 14px; background: rgba(15, 52, 96, 0.4); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05); }
+        .se-label { font-size: 14px; font-weight: 500; color: #e0e8ff; }
+        .se-desc { font-size: 12px; color: #9fb2d8; margin: 3px 0 10px; line-height: 1.4; }
+        .se-value-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #c6d2f0; margin-bottom: 4px; }
+        .se-value { font-weight: 600; color: #4CAF50; font-size: 14px; }
+        .se-check { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+        .se-range, .se-text, .se-check input { accent-color: #4CAF50; }
+        .se-range { width: 100%; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); outline: none; -webkit-appearance: none; appearance: none; }
+        .se-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #4CAF50; cursor: pointer; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); }
+        .se-text { width: 100%; padding: 9px 10px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(0, 0, 0, 0.3); color: #fff; font-size: 14px; box-sizing: border-box; }
+        .se-text:focus { outline: none; border-color: #4CAF50; box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2); }
+        .se-actions { display: flex; gap: 10px; margin-top: 18px; }
+        .se-actions button { flex: 1; padding: 11px 16px; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color 0.2s, transform 0.1s; }
+        .se-actions .se-reset { background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); }
+        .se-actions .se-reset:hover { background: rgba(255, 255, 255, 0.2); }
+        .se-actions .se-done { background: #4CAF50; color: #fff; }
+        .se-actions .se-done:hover { background: #45a049; }
+        @media (max-width: 560px) { .susuwatari-embedded-card { padding: 16px 14px 18px; } }
+    `;
+    document.head.appendChild(style);
+}
+
+function createEmbeddedToggleButton() {
+    if (embeddedToggleBtn) return;
+    embeddedToggleBtn = document.createElement('button');
+    embeddedToggleBtn.id = 'susuwatari-embedded-toggle';
+    embeddedToggleBtn.setAttribute('aria-label', 'Susuwatari settings');
+    embeddedToggleBtn.title = 'Susuwatari settings';
+    embeddedToggleBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.61 3.61 0 0 1 8.4 12c0-1.98 1.62-3.6 3.6-3.6s3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>';
+    embeddedToggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleEmbeddedSettings();
+    });
+    document.body.appendChild(embeddedToggleBtn);
+}
+
+function formatEmbeddedValue(cfg, value) {
+    if (cfg.unit === 'pct') return Math.round(value * 100) + '%';
+    return (cfg.step && cfg.step < 1 ? value.toFixed(1) : value) + cfg.unit;
+}
+
+function updateEmbeddedValueDisplay(input) {
+    const cfg = EMBEDDED_CONTROLS.find(c => c.key === input.dataset.key);
+    if (!cfg || cfg.type !== 'slider') return;
+    const el = embeddedPanel.querySelector(`[data-value="${cfg.key}"]`);
+    if (el) el.textContent = formatEmbeddedValue(cfg, parseFloat(input.value));
+}
+
+function buildEmbeddedPanel() {
+    if (embeddedPanelBuilt) return;
+    embeddedPanelBuilt = true;
+    injectEmbeddedStyles();
+
+    const controlsHtml = EMBEDDED_CONTROLS.map(c => {
+        if (c.type === 'checkbox') {
+            return `<div class="se-group"><div class="se-label">${c.label}</div><div class="se-desc">${c.desc}</div><label class="se-check"><input type="checkbox" class="se-input" data-key="${c.key}" ${c.def ? 'checked' : ''}>${c.label}</label></div>`;
+        }
+        if (c.type === 'text') {
+            return `<div class="se-group"><div class="se-label">${c.label}</div><div class="se-desc">${c.desc}</div><input type="text" class="se-text" data-key="${c.key}" placeholder="${c.placeholder || ''}"></div>`;
+        }
+        return `<div class="se-group"><div class="se-label">${c.label}</div><div class="se-desc">${c.desc}</div><div class="se-value-row"><span>${c.min}${c.unit === 'pct' ? '%' : c.unit}</span><span class="se-value" data-value="${c.key}"></span><span>${c.max}${c.unit === 'pct' ? '%' : c.unit}</span></div><input type="range" class="se-range" data-key="${c.key}" min="${c.min}" max="${c.max}" step="${c.step}"></div>`;
+    }).join('');
+
+    embeddedPanel = document.createElement('div');
+    embeddedPanel.id = 'susuwatari-embedded-panel';
+    embeddedPanel.innerHTML = `
+        <div class="susuwatari-embedded-card">
+            <button type="button" class="susuwatari-embedded-close" aria-label="Close settings">&times;</button>
+            <h2>Susuwatari Settings</h2>
+            <p class="sub">Settings are saved on this device and apply instantly.</p>
+            ${controlsHtml}
+            <div class="se-actions">
+                <button type="button" class="se-reset">Reset Defaults</button>
+                <button type="button" class="se-done">Done</button>
+            </div>
+        </div>`;
+    document.body.appendChild(embeddedPanel);
+
+    embeddedPanel.querySelector('.susuwatari-embedded-close').addEventListener('click', closeEmbeddedSettings);
+    embeddedPanel.querySelector('.se-done').addEventListener('click', closeEmbeddedSettings);
+    embeddedPanel.querySelector('.se-reset').addEventListener('click', resetEmbeddedSettings);
+    embeddedPanel.querySelector('.susuwatari-embedded-card').addEventListener('wheel', (e) => e.stopPropagation());
+    embeddedPanel.addEventListener('click', (e) => {
+        if (e.target === embeddedPanel) closeEmbeddedSettings();
+    });
+
+    embeddedPanel.querySelectorAll('input').forEach(input => {
+        input.addEventListener('input', () => {
+            if (input.dataset.key) updateEmbeddedValueDisplay(input);
+            saveEmbeddedSettings();
+        });
+        input.addEventListener('change', () => {
+            if (input.dataset.key) updateEmbeddedValueDisplay(input);
+            saveEmbeddedSettings();
+        });
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && embeddedPanel.classList.contains('open')) {
+            closeEmbeddedSettings();
+        }
+    });
+}
+
+function syncEmbeddedControls() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('susuwatari-settings') || 'null'); } catch (e) { saved = null; }
+    EMBEDDED_CONTROLS.forEach(c => {
+        const el = embeddedPanel.querySelector(`[data-key="${c.key}"]`);
+        if (!el) return;
+        const val = saved && saved[c.key] !== undefined && saved[c.key] !== null ? saved[c.key] : c.def;
+        if (c.type === 'checkbox') el.checked = !!val;
+        else el.value = val;
+        if (c.type === 'slider') updateEmbeddedValueDisplay(el);
+    });
+}
+
+function readEmbeddedSettings() {
+    const settings = {};
+    EMBEDDED_CONTROLS.forEach(c => {
+        const el = embeddedPanel.querySelector(`[data-key="${c.key}"]`);
+        if (!el) { settings[c.key] = c.def; return; }
+        if (c.type === 'checkbox') settings[c.key] = el.checked;
+        else if (c.type === 'slider') settings[c.key] = parseFloat(el.value);
+        else settings[c.key] = el.value;
+    });
+    return settings;
+}
+
+function saveEmbeddedSettings() {
+    const settings = readEmbeddedSettings();
+    try { localStorage.setItem('susuwatari-settings', JSON.stringify(settings)); } catch (e) { console.warn('Could not persist embedded settings:', e); }
+    applyBrowserSettings(settings);
+}
+
+function resetEmbeddedSettings() {
+    EMBEDDED_CONTROLS.forEach(c => {
+        const el = embeddedPanel.querySelector(`[data-key="${c.key}"]`);
+        if (!el) return;
+        if (c.type === 'checkbox') el.checked = !!c.def;
+        else el.value = c.def;
+        if (c.type === 'slider') updateEmbeddedValueDisplay(el);
+    });
+    try { localStorage.removeItem('susuwatari-settings'); } catch (e) { console.warn('Could not clear embedded settings:', e); }
+    saveEmbeddedSettings();
+}
+
+function openEmbeddedSettings() {
+    buildEmbeddedPanel();
+    syncEmbeddedControls();
+    embeddedPanel.classList.add('open');
+}
+
+function closeEmbeddedSettings() {
+    if (embeddedPanel) embeddedPanel.classList.remove('open');
+}
+
+function toggleEmbeddedSettings() {
+    if (embeddedPanel && embeddedPanel.classList.contains('open')) closeEmbeddedSettings();
+    else openEmbeddedSettings();
+}
+
+function setupEmbeddedControls() {
+    loadBrowserSettings();
+    injectEmbeddedStyles();
+    createEmbeddedToggleButton();
+
+    document.addEventListener('keydown', function (e) {
+        if (e.ctrlKey && e.shiftKey && (e.key === 'S' || e.key === 's')) {
+            e.preventDefault();
+            toggleEmbeddedSettings();
+        }
+    });
+    document.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        toggleEmbeddedSettings();
+    });
+}
+
 function openSettingsPanel() {
     try {
         // Open settings panel in a new popup window
@@ -3808,6 +4092,8 @@ function showBrowserModeNotification() {
 window.openSettingsPanel = openSettingsPanel;
 window.setupBrowserAudio = setupBrowserAudio;
 window.cleanupBrowserAudio = cleanupBrowserAudio;
+window.openEmbeddedSettings = openEmbeddedSettings;
+window.toggleEmbeddedSettings = toggleEmbeddedSettings;
 
 // Expose browser audio status
 Object.defineProperty(window, 'browserAudioInitialized', {
